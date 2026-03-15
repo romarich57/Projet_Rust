@@ -13,9 +13,10 @@ pub fn gerer_clavier(joueur: &mut Joueur) { //&mut Joueur : on passe une référ
         joueur.vx = 0.0;
     }
 
-    // Saut (Simplifié : on verra la gravité plus tard avec le Physicien)
-    if is_key_pressed(KeyCode::Up) {
-        joueur.vy = -10.0;
+    // Saut
+    if is_key_pressed(KeyCode::Up) && joueur.nb_sauts < 2 {
+        joueur.vy = if joueur.nb_sauts == 0 { -10.0 } else { -8.0 };  
+        joueur.nb_sauts += 1; // Incrémente le nombre de sauts effectués
     }
 
     // Gestion du tir (Espace)

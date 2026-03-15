@@ -5,6 +5,7 @@ pub struct Joueur {
     pub y: f32,
     pub vx: f32,
     pub vy: f32,
+    pub nb_sauts: u8,
     pub angle_pied: f32,
     pub en_tir: bool,
     pub texture_tete: Texture2D,
@@ -17,6 +18,7 @@ impl Joueur {
         Self {
             x, y,
             vx: 0.0, vy: 0.0,
+            nb_sauts: 0,
             angle_pied: 0.0,
             en_tir: false,
             texture_tete: tex_t,

@@ -9,12 +9,13 @@ pub fn appliquer_physique(joueur: &mut Joueur) {
     joueur.y += joueur.vy;
     
     // gravité joueur
-    joueur.vy += 0.25; 
+    joueur.vy += 0.5; 
     
     // -- COLLISIONS SOL --
     if joueur.y > 580.0 { 
         joueur.y = 580.0; 
         joueur.vy = 0.0; // On arrête la chute quand on touche le sol
+        joueur.nb_sauts = 0; // Réinitialise le nombre de sauts disponibles
     }
 
     // --- COLLISION BORD GAUCHE (x = 0) ---
