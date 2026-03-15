@@ -1,7 +1,10 @@
 use macroquad::prelude::*;
 use crate::models::joueur::Joueur;
 
-pub fn gerer_clavier(joueur: &mut Joueur) { //&mut Joueur : on passe une référence mutable à la fonction pour pouvoir modifier les propriétés du joueur (comme sa vitesse et son état de tir) en fonction des entrées clavier. Cela permet de mettre à jour l'état du joueur en temps réel pendant le jeu.
+//&mut Joueur : on passe une référence mutable à la fonction pour pouvoir modifier 
+//les propriétés du joueur (comme sa vitesse et son état de tir) en fonction des entrées clavier. 
+//Cela permet de mettre à jour l'état du joueur en temps réel pendant le jeu.
+pub fn gerer_clavier(joueur: &mut Joueur) { 
     let vitesse = 5.0;
 
     // Gauche / Droite
@@ -25,6 +28,10 @@ pub fn gerer_clavier(joueur: &mut Joueur) { //&mut Joueur : on passe une référ
     }
 }
 
+// Cette fonction gère les animations du joueur, notamment l'animation de tir du pied. 
+// Lorsque le joueur appuie sur la touche de tir (Espace), l'angle du pied diminue 
+// pour simuler un mouvement de tir. Une fois que l'angle atteint une certaine limite, 
+// le tir est terminé et le pied revient à sa position initiale.
 pub fn update_animations(joueur: &mut Joueur) {
     if joueur.en_tir {
         joueur.angle_pied -= 0.2; // Le pied se lève
