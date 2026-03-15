@@ -5,7 +5,18 @@ mod render;
 use macroquad::prelude::*;
 use models::ballon::Ballon;
 
-#[macroquad::main("Test Ballon - Head Soccer")]
+
+fn configuration_fenetre() -> Conf {
+    Conf {
+        window_title: "Test Ballon - Head Soccer".to_owned(),
+        window_width: 1000,      
+        window_height: 600,     
+        window_resizable: false, // Empêche la redimension de la fenêtre
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(configuration_fenetre())]
 async fn main() {
 
     let t_stade = load_texture("src/assets/stade/stade.png").await.unwrap();

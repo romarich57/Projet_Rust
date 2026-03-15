@@ -61,8 +61,8 @@ pub fn appliquer_physique_ballon(ballon: &mut Ballon) {
     }
 
     // Collision avec le plafond
-    if ballon.y - ballon.rayon < 0.0 {
+    if ballon.y - ballon.rayon < 0.0 { // 0.0 représente le plafond
         ballon.y = ballon.rayon;
-        ballon.vy = -ballon.vy * 0.8;
+        ballon.vy = -ballon.vy * 0.6;
     }
 }
