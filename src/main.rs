@@ -1,6 +1,6 @@
 mod models;
-mod physics;
 mod render;
+mod physics;
 
 use macroquad::prelude::*;
 use models::ballon::Ballon;
@@ -32,7 +32,7 @@ async fn main() {
             ballon.vx = 8.0;   // Impulsion vers la droite
         }
       
-        physics::appliquer_physique_ballon(&mut ballon);
+        physics::ball_physics::appliquer_physique_ballon(&mut ballon);
         render::dessiner_tout(&ballon, &t_stade);
 
         next_frame().await
