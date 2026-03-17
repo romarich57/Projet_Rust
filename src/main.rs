@@ -3,6 +3,7 @@ mod input;
 mod render;
 mod physics;
 
+use physics::player_physics;
 use macroquad::prelude::*;
 use models::joueur::Joueur;
 
@@ -22,7 +23,7 @@ async fn main() {
         input::update_animations(&mut joueur);
 
         // 2. Physique
-        physics::appliquer_physique(&mut joueur);
+        player_physics::appliquer_physique(&mut joueur);
 
         // 3. Rendu
         render::dessiner_tout(&joueur, &t_stade);
