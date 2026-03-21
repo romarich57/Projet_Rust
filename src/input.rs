@@ -5,7 +5,7 @@ use crate::models::joueur::Joueur;
 //les propriétés du joueur (comme sa vitesse et son état de tir) en fonction des entrées clavier. 
 //Cela permet de mettre à jour l'état du joueur en temps réel pendant le jeu.
 pub fn gerer_clavier(joueur: &mut Joueur) { 
-    let vitesse = 5.0;
+    let vitesse = 3.0;
 
     // Gauche / Droite
     if is_key_down(KeyCode::Left) {
