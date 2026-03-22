@@ -34,6 +34,7 @@ fn configuration_fenetre() -> Conf {
         window_title: "Head Soccer".to_owned(),
         window_width: 1000,
         window_height: 600,
+        window_resizable: false,
         ..Default::default()
     }
 }

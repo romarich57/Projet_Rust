@@ -5,7 +5,7 @@ use crate::models::joueur::Joueur;
 /// - collision "corps/tête" (faible impulsion)
 /// - collision "pied en tir" (forte impulsion)
 pub fn appliquer_collision_joueur_ballon(joueur: &Joueur, ballon: &mut Ballon) {
-    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied();
+    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied_active();
     let (tete_x, tete_y, tete_l, tete_h) = joueur.hitbox_rect_tete();
 
     // 1) Collision tête-corps: petite poussée naturelle
@@ -51,17 +51,39 @@ pub fn appliquer_collision_joueur_ballon(joueur: &Joueur, ballon: &mut Ballon) {
         ballon.x += nx * penetration;
         ballon.y += ny * penetration;
 
-        let force = if joueur.en_tir { 11.5 } else { 3.2 };
-        let lift = if joueur.en_tir { 2.8 } else { 1.3 };
+        let progression_tir = (-joueur.angle_pied).clamp(0.0, 1.0);
+        let tir_en_phase = joueur.en_tir || progression_tir > 0.22;
 
-        ballon.vx += nx * force + joueur.vx * 0.35;
-        ballon.vy += ny * force + joueur.vy * 0.20;
+        if tir_en_phase {
+            // Direction de frappe: plus le pied monte (angle important),
+            // plus la balle prend de hauteur.
+            let contact_y = ((bcy - pied_y) / pied_h).clamp(0.0, 1.0);
+            let bonus_lob = (1.0 - contact_y) * 0.35;
 
-        // Le pied donne toujours un coup vers le haut meme sans tir actif
-        ballon.vy -= lift;
-        let vy_min = if joueur.en_tir { -4.8 } else { -3.0 };
-        if ballon.vy > vy_min {
-            ballon.vy = vy_min;
+            let dir_x = if nx.abs() > 0.05 { nx } else { -1.0 };
+            let dir_y = -(0.35 + 0.70 * progression_tir + bonus_lob);
+
+            let force = 8.5 + 6.5 * progression_tir;
+            let transfert_vitesse = joueur.vx * 0.45;
+
+            ballon.vx += dir_x * force + transfert_vitesse;
+            ballon.vy += dir_y * force + joueur.vy * 0.10;
+
+            // Assure une montée minimale sur une vraie frappe.
+            let vy_min = -(3.8 + 2.6 * progression_tir);
+            if ballon.vy > vy_min {
+                ballon.vy = vy_min;
+            }
+        } else {
+            // Contact doux hors tir: on réduit la vitesse générale et on
+            // applique juste une petite impulsion naturelle.
+            let force_douce = 1.6;
+            ballon.vx *= 0.86;
+            ballon.vy *= 0.90;
+
+            ballon.vx += nx * force_douce + joueur.vx * 0.20;
+            ballon.vy += ny * (force_douce * 0.55);
+            ballon.vy -= 0.35;
         }
     }
 

@@ -108,6 +108,25 @@ impl Joueur {
         )
     }
 
+    pub fn hitbox_rect_pied_active(&self) -> (f32, f32, f32, f32) {
+        let mut hx = self.x + self.hitbox_pied.offset_x;
+        let mut hy = self.y + self.hitbox_pied.offset_y;
+        let mut hl = self.hitbox_pied.largeur;
+        let mut hh = self.hitbox_pied.hauteur;
+
+        // Pendant le tir, on avance et on allonge un peu la hitbox du pied
+        // pour suivre l'animation visuelle.
+        let progression_tir = (-self.angle_pied).clamp(0.0, 1.0);
+        if progression_tir > 0.05 {
+            hx -= hl * 0.38 * progression_tir;
+            hy -= hh * 0.20 * progression_tir;
+            hl *= 1.0 + 0.28 * progression_tir;
+            hh *= 1.0 + 0.12 * progression_tir;
+        }
+
+        (hx, hy, hl, hh)
+    }
+
     pub fn hitbox_rect_tete(&self) -> (f32, f32, f32, f32) {
         (
             self.x + self.hitbox_tete.offset_x,
@@ -136,6 +155,6 @@ impl Joueur {
     }
 
     pub fn y_pose_au_sol(&self, sol_y: f32) -> f32 {
-        sol_y - self.hauteur_pied + self.hauteur_pied * 0.08
+        sol_y - self.hauteur_pied + self.hauteur_pied * 0.3
     }
 }

@@ -53,7 +53,8 @@ pub fn dessiner_tout(joueur: &Joueur, tex_stade: &Texture2D, ballon: &Ballon, de
 }
 
 fn dessiner_hitbox_debug(joueur: &Joueur, ballon: &Ballon) {
-    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied();
+    let (pied_base_x, pied_base_y, pied_base_l, pied_base_h) = joueur.hitbox_rect_pied();
+    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied_active();
     let (tete_x, tete_y, tete_l, tete_h) = joueur.hitbox_rect_tete();
 
     let ballon_hit = ballon.hitbox_cercle();
@@ -61,6 +62,7 @@ fn dessiner_hitbox_debug(joueur: &Joueur, ballon: &Ballon) {
     let ballon_cy = ballon_hit.1;
     let ballon_r = ballon_hit.2;
 
+    draw_rectangle_lines(pied_base_x, pied_base_y, pied_base_l, pied_base_h, 1.0, PINK);
     draw_rectangle_lines(pied_x, pied_y, pied_l, pied_h, 2.0, RED);
     draw_rectangle_lines(tete_x, tete_y, tete_l, tete_h, 2.0, ORANGE);
     draw_rectangle_lines(
