@@ -1,99 +1,89 @@
-use crate::models::ballon::Ballon;
-use crate::models::joueur::Joueur;
+use crate::models::ball::Ball;
+use crate::models::player::Player;
 
-/// Collision joueur <-> ballon:
-/// - collision "corps/tête" (faible impulsion)
-/// - collision "pied en tir" (forte impulsion)
-pub fn appliquer_collision_joueur_ballon(joueur: &Joueur, ballon: &mut Ballon) {
-    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied_active();
-    let (tete_x, tete_y, tete_l, tete_h) = joueur.hitbox_rect_tete();
+/// Player-ball collision:
+/// - head/body contact (light impulse)
+/// - shooting foot contact (strong impulse)
+pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
+    let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
+    let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
 
-    // 1) Collision tête-corps: petite poussée naturelle
-    let (bcx, bcy, bcr) = ballon.hitbox_cercle();
+    let (bcx, bcy, bcr) = ball.circle_hitbox();
 
-    if let Some((nx, ny, penetration)) = collision_rect_cercle(
-        tete_x,
-        tete_y,
-        tete_l,
-        tete_h,
+    if let Some((nx, ny, penetration)) = rect_circle_collision(
+        head_x,
+        head_y,
+        head_w,
+        head_h,
         bcx,
         bcy,
         bcr,
     ) {
-        // On sépare les objets pour éviter qu'ils restent collés
-        ballon.x += nx * penetration;
-        ballon.y += ny * penetration;
+        // Separate shapes to avoid sticky overlap.
+        ball.x += nx * penetration;
+        ball.y += ny * penetration;
 
-        // Impulsion légère
         let force = 3.0;
-        ballon.vx += nx * force + joueur.vx * 0.30;
+        ball.vx += nx * force + player.vx * 0.30;
 
-        // La balle doit toujours prendre un peu de hauteur au contact.
-        ballon.vy += ny * force + joueur.vy * 0.15;
-        ballon.vy -= 1.2;
-        if ballon.vy > -2.6 {
-            ballon.vy = -2.6;
+        // Always add slight upward lift on body contact.
+        ball.vy += ny * force + player.vy * 0.15;
+        ball.vy -= 1.2;
+        if ball.vy > -2.6 {
+            ball.vy = -2.6;
         }
     }
 
-    // 2) Collision pied:
-    // - si joueur en tir => frappe forte
-    // - sinon => petite poussée
-    if let Some((nx, ny, penetration)) = collision_rect_cercle(
-        pied_x,
-        pied_y,
-        pied_l,
-        pied_h,
+    if let Some((nx, ny, penetration)) = rect_circle_collision(
+        foot_x,
+        foot_y,
+        foot_w,
+        foot_h,
         bcx,
         bcy,
         bcr,
     ) {
-        ballon.x += nx * penetration;
-        ballon.y += ny * penetration;
+        ball.x += nx * penetration;
+        ball.y += ny * penetration;
 
-        let progression_tir = (-joueur.angle_pied).clamp(0.0, 1.0);
-        let tir_en_phase = joueur.en_tir || progression_tir > 0.22;
+        let shot_progress = (-player.foot_angle).clamp(0.0, 1.0);
+        let in_shot_phase = player.is_shooting || shot_progress > 0.22;
 
-        if tir_en_phase {
-            // Direction de frappe: plus le pied monte (angle important),
-            // plus la balle prend de hauteur.
-            let contact_y = ((bcy - pied_y) / pied_h).clamp(0.0, 1.0);
-            let bonus_lob = (1.0 - contact_y) * 0.35;
+        if in_shot_phase {
+            // Higher kick angle and higher contact point create more loft.
+            let contact_y = ((bcy - foot_y) / foot_h).clamp(0.0, 1.0);
+            let lob_bonus = (1.0 - contact_y) * 0.35;
 
             let dir_x = if nx.abs() > 0.05 { nx } else { -1.0 };
-            let dir_y = -(0.35 + 0.70 * progression_tir + bonus_lob);
+            let dir_y = -(0.35 + 0.70 * shot_progress + lob_bonus);
 
-            let force = 8.5 + 6.5 * progression_tir;
-            let transfert_vitesse = joueur.vx * 0.45;
+            let force = 8.5 + 6.5 * shot_progress;
+            let speed_transfer = player.vx * 0.45;
 
-            ballon.vx += dir_x * force + transfert_vitesse;
-            ballon.vy += dir_y * force + joueur.vy * 0.10;
+            ball.vx += dir_x * force + speed_transfer;
+            ball.vy += dir_y * force + player.vy * 0.10;
 
-            // Assure une montée minimale sur une vraie frappe.
-            let vy_min = -(3.8 + 2.6 * progression_tir);
-            if ballon.vy > vy_min {
-                ballon.vy = vy_min;
+            // Ensure a minimum upward velocity on a real shot.
+            let vy_min = -(3.8 + 2.6 * shot_progress);
+            if ball.vy > vy_min {
+                ball.vy = vy_min;
             }
         } else {
-            // Contact doux hors tir: on réduit la vitesse générale et on
-            // applique juste une petite impulsion naturelle.
-            let force_douce = 1.6;
-            ballon.vx *= 0.86;
-            ballon.vy *= 0.90;
+            // Soft touch outside shot phase: damp speed and add mild push.
+            let soft_force = 1.6;
+            ball.vx *= 0.86;
+            ball.vy *= 0.90;
 
-            ballon.vx += nx * force_douce + joueur.vx * 0.20;
-            ballon.vy += ny * (force_douce * 0.55);
-            ballon.vy -= 0.35;
+            ball.vx += nx * soft_force + player.vx * 0.20;
+            ball.vy += ny * (soft_force * 0.55);
+            ball.vy -= 0.35;
         }
     }
 
-    limiter_vitesse_ballon(ballon, 18.0);
+    limit_ball_speed(ball, 18.0);
 }
 
-/// Retourne:
-/// - la normale de collision (nx, ny)
-/// - la pénétration (distance de chevauchement)
-fn collision_rect_cercle(
+fn rect_circle_collision(
     rx: f32,
     ry: f32,
     rw: f32,
@@ -120,7 +110,7 @@ fn collision_rect_cercle(
         return Some((nx, ny, penetration));
     }
 
-    // Centre du cercle dans le rectangle: on pousse vers le bord le plus proche.
+    // Circle center inside rectangle: push toward nearest edge.
     let dist_left = (cx - rx).abs();
     let dist_right = (rx + rw - cx).abs();
     let dist_top = (cy - ry).abs();
@@ -143,14 +133,14 @@ fn collision_rect_cercle(
     Some((nx, ny, penetration))
 }
 
-fn limiter_vitesse_ballon(ballon: &mut Ballon, vmax: f32) {
-    let speed2 = ballon.vx * ballon.vx + ballon.vy * ballon.vy;
+fn limit_ball_speed(ball: &mut Ball, vmax: f32) {
+    let speed2 = ball.vx * ball.vx + ball.vy * ball.vy;
     let vmax2 = vmax * vmax;
 
     if speed2 > vmax2 {
         let speed = speed2.sqrt();
         let scale = vmax / speed;
-        ballon.vx *= scale;
-        ballon.vy *= scale;
+        ball.vx *= scale;
+        ball.vy *= scale;
     }
 }

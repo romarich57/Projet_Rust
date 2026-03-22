@@ -1,2 +1,5 @@
-pub mod ballon;
-pub mod joueur;
+#[path = "ballon.rs"]
+pub mod ball;
+
+#[path = "joueur.rs"]
+pub mod player;

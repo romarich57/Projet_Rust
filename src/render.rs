@@ -1,75 +1,71 @@
 use macroquad::prelude::*;
-use crate::models::ballon::Ballon;
-use crate::models::joueur::Joueur;
+use crate::models::ball::Ball;
+use crate::models::player::Player;
 
-pub fn dessiner_tout(joueur: &Joueur, tex_stade: &Texture2D, ballon: &Ballon, debug_hitbox: bool) {
-    // 1. Dessiner le stade (toujours en premier)
-    draw_texture_ex(tex_stade, 0.0, 0.0, WHITE, DrawTextureParams {
+pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug_hitbox: bool) {
+    draw_texture_ex(stadium_texture, 0.0, 0.0, WHITE, DrawTextureParams {
         dest_size: Some(vec2(screen_width(), screen_height())),
         ..Default::default()
     });
 
-    // Dessiner le ballon avec sa rotation
     draw_texture_ex(
-        &ballon.texture,
-        ballon.x - ballon.rayon_visuel(), 
-        ballon.y - ballon.rayon_visuel(),
+        &ball.texture,
+        ball.x - ball.visual_radius(), 
+        ball.y - ball.visual_radius(),
         WHITE,
         DrawTextureParams {
-            dest_size: Some(vec2(ballon.rayon_visuel() * 2.0, ballon.rayon_visuel() * 2.0)),
-            rotation: ballon.angle,
-            ..Default::default()
-        },
-    );
-    // 2. Dessiner le pied REDIMENSIONNÉ
-    draw_texture_ex(
-        &joueur.texture_pied,
-        joueur.x,
-        joueur.y,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(vec2(joueur.largeur_pied, joueur.hauteur_pied)),
-            rotation: joueur.angle_pied,
+            dest_size: Some(vec2(ball.visual_radius() * 2.0, ball.visual_radius() * 2.0)),
+            rotation: ball.angle,
             ..Default::default()
         },
     );
 
-    // 3. Dessiner la tête REDIMENSIONNÉE
-    // On réduit la taille et on ajuste le décalage (y - 50.0 par exemple)
     draw_texture_ex(
-        &joueur.texture_tete,
-        joueur.x + joueur.offset_tete_x,
-        joueur.y + joueur.offset_tete_y,
+        &player.foot_texture,
+        player.x,
+        player.y,
         WHITE,
         DrawTextureParams {
-            dest_size: Some(vec2(joueur.largeur_tete, joueur.hauteur_tete)),
+            dest_size: Some(vec2(player.foot_width, player.foot_height)),
+            rotation: player.foot_angle,
+            ..Default::default()
+        },
+    );
+
+    draw_texture_ex(
+        &player.head_texture,
+        player.x + player.head_offset_x,
+        player.y + player.head_offset_y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(vec2(player.head_width, player.head_height)),
             ..Default::default()
         },
     );
 
     if debug_hitbox {
-        dessiner_hitbox_debug(joueur, ballon);
+        draw_debug_hitbox(player, ball);
     }
 }
 
-fn dessiner_hitbox_debug(joueur: &Joueur, ballon: &Ballon) {
-    let (pied_base_x, pied_base_y, pied_base_l, pied_base_h) = joueur.hitbox_rect_pied();
-    let (pied_x, pied_y, pied_l, pied_h) = joueur.hitbox_rect_pied_active();
-    let (tete_x, tete_y, tete_l, tete_h) = joueur.hitbox_rect_tete();
+fn draw_debug_hitbox(player: &Player, ball: &Ball) {
+    let (foot_base_x, foot_base_y, foot_base_w, foot_base_h) = player.foot_hitbox_rect();
+    let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
+    let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
 
-    let ballon_hit = ballon.hitbox_cercle();
-    let ballon_cx = ballon_hit.0;
-    let ballon_cy = ballon_hit.1;
-    let ballon_r = ballon_hit.2;
+    let ball_hitbox = ball.circle_hitbox();
+    let ball_cx = ball_hitbox.0;
+    let ball_cy = ball_hitbox.1;
+    let ball_r = ball_hitbox.2;
 
-    draw_rectangle_lines(pied_base_x, pied_base_y, pied_base_l, pied_base_h, 1.0, PINK);
-    draw_rectangle_lines(pied_x, pied_y, pied_l, pied_h, 2.0, RED);
-    draw_rectangle_lines(tete_x, tete_y, tete_l, tete_h, 2.0, ORANGE);
+    draw_rectangle_lines(foot_base_x, foot_base_y, foot_base_w, foot_base_h, 1.0, PINK);
+    draw_rectangle_lines(foot_x, foot_y, foot_w, foot_h, 2.0, RED);
+    draw_rectangle_lines(head_x, head_y, head_w, head_h, 2.0, ORANGE);
     draw_rectangle_lines(
-        ballon_cx - ballon_r,
-        ballon_cy - ballon_r,
-        ballon_r * 2.0,
-        ballon_r * 2.0,
+        ball_cx - ball_r,
+        ball_cy - ball_r,
+        ball_r * 2.0,
+        ball_r * 2.0,
         2.0,
         LIME,
     );

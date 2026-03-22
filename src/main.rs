@@ -4,32 +4,32 @@ mod physics;
 mod input;
 
 use macroquad::prelude::*;
-use models::ballon::Ballon;
-use models::joueur::Joueur;
+use models::ball::Ball;
+use models::player::Player;
 use physics::player_physics;
 
-const HITBOX_PIED_LARGEUR_COEF: f32 = 1.0;
-const HITBOX_PIED_HAUTEUR_COEF: f32 = 1.0;
-const HITBOX_TETE_LARGEUR_COEF: f32 = 1.0;
-const HITBOX_TETE_HAUTEUR_COEF: f32 = 1.0;
+const FOOT_HITBOX_WIDTH_COEF: f32 = 1.0;
+const FOOT_HITBOX_HEIGHT_COEF: f32 = 1.0;
+const HEAD_HITBOX_WIDTH_COEF: f32 = 1.0;
+const HEAD_HITBOX_HEIGHT_COEF: f32 = 1.0;
 
-fn appliquer_tuning_hitbox_joueur(joueur: &mut Joueur) {
-    joueur.set_hitbox_pied(
-        joueur.hitbox_pied.offset_x,
-        joueur.hitbox_pied.offset_y,
-        joueur.hitbox_pied.largeur * HITBOX_PIED_LARGEUR_COEF,
-        joueur.hitbox_pied.hauteur * HITBOX_PIED_HAUTEUR_COEF,
+fn apply_player_hitbox_tuning(player: &mut Player) {
+    player.set_foot_hitbox(
+        player.foot_hitbox.offset_x,
+        player.foot_hitbox.offset_y,
+        player.foot_hitbox.width * FOOT_HITBOX_WIDTH_COEF,
+        player.foot_hitbox.height * FOOT_HITBOX_HEIGHT_COEF,
     );
 
-    joueur.set_hitbox_tete(
-        joueur.hitbox_tete.offset_x,
-        joueur.hitbox_tete.offset_y,
-        joueur.hitbox_tete.largeur * HITBOX_TETE_LARGEUR_COEF,
-        joueur.hitbox_tete.hauteur * HITBOX_TETE_HAUTEUR_COEF,
+    player.set_head_hitbox(
+        player.head_hitbox.offset_x,
+        player.head_hitbox.offset_y,
+        player.head_hitbox.width * HEAD_HITBOX_WIDTH_COEF,
+        player.head_hitbox.height * HEAD_HITBOX_HEIGHT_COEF,
     );
 }
 
-fn configuration_fenetre() -> Conf {
+fn window_config() -> Conf {
     Conf {
         window_title: "Head Soccer".to_owned(),
         window_width: 1000,
@@ -39,61 +39,61 @@ fn configuration_fenetre() -> Conf {
     }
 }
 
-#[macroquad::main(configuration_fenetre())]
+#[macroquad::main(window_config())]
 async fn main() {
-    let t_ballon = load_texture("src/assets/ballon/ballon.png").await.unwrap();
-    let mut ballon = Ballon::new(
+    let ball_texture = load_texture("src/assets/ballon/ballon.png").await.unwrap();
+    let mut ball = Ball::new(
         screen_width() / 2.0,
-        physics::niveau_sol() + 200.0 * physics::echelle_y(),
-        30.0 * physics::echelle_x().min(physics::echelle_y()),
-        t_ballon,
+        physics::ground_level() + 200.0 * physics::scale_y(),
+        30.0 * physics::scale_x().min(physics::scale_y()),
+        ball_texture,
     );
-    ballon.set_hitbox_cercle(0.0, 0.0, ballon.rayon_visuel() * 0.7);
+    ball.set_circle_hitbox(0.0, 0.0, ball.visual_radius() * 0.7);
 
-    let t_stade = load_texture("src/assets/stade/stade.png").await.unwrap();
-    let t_tete = load_texture("src/assets/joueur/tete.png").await.unwrap();
-    let t_pied = load_texture("src/assets/joueur/pied.png").await.unwrap();
+    let stadium_texture = load_texture("src/assets/stade/stade.png").await.unwrap();
+    let head_texture = load_texture("src/assets/joueur/tete.png").await.unwrap();
+    let foot_texture = load_texture("src/assets/joueur/pied.png").await.unwrap();
 
-    let mut joueur = Joueur::new(0.0, 0.0, t_tete, t_pied);
-    joueur.appliquer_taille_relative_ecran(screen_width(), screen_height());
-    appliquer_tuning_hitbox_joueur(&mut joueur);
-    joueur.y = joueur.y_pose_au_sol(physics::niveau_sol());
-    joueur.x = screen_width() - joueur.largeur_collision() - 20.0 * physics::echelle_x();
+    let mut player = Player::new(0.0, 0.0, head_texture, foot_texture);
+    player.apply_relative_screen_size(screen_width(), screen_height());
+    apply_player_hitbox_tuning(&mut player);
+    player.y = player.y_at_ground(physics::ground_level());
+    player.x = screen_width() - player.collision_width() - 20.0 * physics::scale_x();
 
-    let mut derniere_largeur = screen_width();
-    let mut derniere_hauteur = screen_height();
+    let mut last_width = screen_width();
+    let mut last_height = screen_height();
     let mut debug_hitbox = false;
 
     loop {
-        if (screen_width() - derniere_largeur).abs() > f32::EPSILON
-            || (screen_height() - derniere_hauteur).abs() > f32::EPSILON
+        if (screen_width() - last_width).abs() > f32::EPSILON
+            || (screen_height() - last_height).abs() > f32::EPSILON
         {
-            joueur.appliquer_taille_relative_ecran(screen_width(), screen_height());
-            appliquer_tuning_hitbox_joueur(&mut joueur);
-            joueur.y = joueur.y_pose_au_sol(physics::niveau_sol());
+            player.apply_relative_screen_size(screen_width(), screen_height());
+            apply_player_hitbox_tuning(&mut player);
+            player.y = player.y_at_ground(physics::ground_level());
 
-            let marge_droite = 20.0 * physics::echelle_x();
-            let x_max = screen_width() - joueur.largeur_collision() - marge_droite;
-            joueur.x = joueur.x.clamp(0.0, x_max);
+            let right_margin = 20.0 * physics::scale_x();
+            let x_max = screen_width() - player.collision_width() - right_margin;
+            player.x = player.x.clamp(0.0, x_max);
 
-            derniere_largeur = screen_width();
-            derniere_hauteur = screen_height();
+            last_width = screen_width();
+            last_height = screen_height();
         }
 
         if is_key_pressed(KeyCode::Y) {
             debug_hitbox = !debug_hitbox;
         }
 
-        input::gerer_clavier(&mut joueur);
-        input::update_animations(&mut joueur);
+        input::handle_keyboard(&mut player);
+        input::update_animations(&mut player);
 
-        player_physics::appliquer_physique(&mut joueur);
+        player_physics::apply_physics(&mut player);
 
-        physics::collision::appliquer_collision_joueur_ballon(&joueur, &mut ballon);
+        physics::collision::apply_player_ball_collision(&player, &mut ball);
 
-        physics::ball_physics::appliquer_physique_ballon(&mut ballon);
+        physics::ball_physics::apply_ball_physics(&mut ball);
 
-        render::dessiner_tout(&joueur, &t_stade, &ballon, debug_hitbox);
+        render::draw_all(&player, &stadium_texture, &ball, debug_hitbox);
 
         next_frame().await
     }

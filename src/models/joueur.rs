@@ -1,160 +1,158 @@
 use macroquad::prelude::*; 
-// macroquad est un moteur de jeu en Rust qui fournit des fonctionnalités pour la création de jeux 2D et 3D. 
-//Il offre une API simple pour gérer les graphiques, les entrées utilisateur, les sons, etc.
+// Macroquad provides rendering, input and timing for this 2D game.
 
 #[derive(Clone, Copy)]
 pub struct HitboxRect {
     pub offset_x: f32,
     pub offset_y: f32,
-    pub largeur: f32,
-    pub hauteur: f32,
+    pub width: f32,
+    pub height: f32,
 }
 
-pub struct Joueur {
+pub struct Player {
     pub x: f32,
     pub y: f32,
     pub vx: f32,
     pub vy: f32,
-    pub nb_sauts: u8,
-    pub angle_pied: f32,
-    pub en_tir: bool,
-    pub texture_tete: Texture2D,
-    pub texture_pied: Texture2D,
-    pub largeur_pied: f32,
-    pub hauteur_pied: f32,
-    pub largeur_tete: f32,
-    pub hauteur_tete: f32,
-    pub offset_tete_x: f32,
-    pub offset_tete_y: f32,
-    pub hitbox_pied: HitboxRect,
-    pub hitbox_tete: HitboxRect,
+    pub jump_count: u8,
+    pub foot_angle: f32,
+    pub is_shooting: bool,
+    pub head_texture: Texture2D,
+    pub foot_texture: Texture2D,
+    pub foot_width: f32,
+    pub foot_height: f32,
+    pub head_width: f32,
+    pub head_height: f32,
+    pub head_offset_x: f32,
+    pub head_offset_y: f32,
+    pub foot_hitbox: HitboxRect,
+    pub head_hitbox: HitboxRect,
 }
 
-impl Joueur {
+impl Player {
     
     pub fn new(x: f32, y: f32, tex_t: Texture2D, tex_p: Texture2D) -> Self {
         Self {
             x, y,
             vx: 0.0, vy: 0.0,
-            nb_sauts: 0,
-            angle_pied: 0.0,
-            en_tir: false,
-            texture_tete: tex_t,
-            texture_pied: tex_p,
-            largeur_pied: 200.0,
-            hauteur_pied: 85.0,
-            largeur_tete: 200.0,
-            hauteur_tete: 170.0,
-            offset_tete_x: 5.0,
-            offset_tete_y: -95.0,
-            hitbox_pied: HitboxRect {
+            jump_count: 0,
+            foot_angle: 0.0,
+            is_shooting: false,
+            head_texture: tex_t,
+            foot_texture: tex_p,
+            foot_width: 200.0,
+            foot_height: 85.0,
+            head_width: 200.0,
+            head_height: 170.0,
+            head_offset_x: 5.0,
+            head_offset_y: -95.0,
+            foot_hitbox: HitboxRect {
                 offset_x: 45.0,
                 offset_y: 20.0,
-                largeur: 120.0,
-                hauteur: 55.0,
+                width: 120.0,
+                height: 55.0,
             },
-            hitbox_tete: HitboxRect {
+            head_hitbox: HitboxRect {
                 offset_x: 55.0,
                 offset_y: -90.0,
-                largeur: 90.0,
-                hauteur: 110.0,
+                width: 90.0,
+                height: 110.0,
             },
         }
     }
 
-    pub fn appliquer_taille_relative_ecran(&mut self, largeur_ecran: f32, hauteur_ecran: f32) {
-        let cible_largeur = largeur_ecran * 0.20;
-        let cible_hauteur = hauteur_ecran * 0.20;
+    pub fn apply_relative_screen_size(&mut self, screen_width: f32, screen_height: f32) {
+        let target_width = screen_width * 0.20;
+        let target_height = screen_height * 0.20;
 
-        let base_largeur_pied: f32 = 200.0;
-        let base_hauteur_pied: f32 = 85.0;
-        let base_largeur_tete: f32 = 200.0;
-        let base_hauteur_tete: f32 = 170.0;
-        let base_offset_tete_x: f32 = 5.0;
-        let base_offset_tete_y: f32 = -95.0;
+        let base_foot_width: f32 = 200.0;
+        let base_foot_height: f32 = 85.0;
+        let base_head_width: f32 = 200.0;
+        let base_head_height: f32 = 170.0;
+        let base_head_offset_x: f32 = 5.0;
+        let base_head_offset_y: f32 = -95.0;
 
-        let base_largeur_collision = base_largeur_pied.max(base_offset_tete_x + base_largeur_tete);
-        let base_hauteur_totale = base_hauteur_pied - base_offset_tete_y;
+        let base_collision_width = base_foot_width.max(base_head_offset_x + base_head_width);
+        let base_total_height = base_foot_height - base_head_offset_y;
 
-        let scale = (cible_largeur / base_largeur_collision)
-            .min(cible_hauteur / base_hauteur_totale);
+        let scale = (target_width / base_collision_width)
+            .min(target_height / base_total_height);
 
-        self.largeur_pied = base_largeur_pied * scale;
-        self.hauteur_pied = base_hauteur_pied * scale;
+        self.foot_width = base_foot_width * scale;
+        self.foot_height = base_foot_height * scale;
 
-        self.largeur_tete = base_largeur_tete * scale;
-        self.hauteur_tete = base_hauteur_tete * scale;
+        self.head_width = base_head_width * scale;
+        self.head_height = base_head_height * scale;
 
-        self.offset_tete_x = base_offset_tete_x * scale;
-        self.offset_tete_y = base_offset_tete_y * scale;
+        self.head_offset_x = base_head_offset_x * scale;
+        self.head_offset_y = base_head_offset_y * scale;
 
-        self.hitbox_pied.offset_x = 45.0 * scale;
-        self.hitbox_pied.offset_y = 20.0 * scale;
-        self.hitbox_pied.largeur = 120.0 * scale;
-        self.hitbox_pied.hauteur = 55.0 * scale;
+        self.foot_hitbox.offset_x = 45.0 * scale;
+        self.foot_hitbox.offset_y = 20.0 * scale;
+        self.foot_hitbox.width = 120.0 * scale;
+        self.foot_hitbox.height = 55.0 * scale;
 
-        self.hitbox_tete.offset_x = 55.0 * scale;
-        self.hitbox_tete.offset_y = -90.0 * scale;
-        self.hitbox_tete.largeur = 90.0 * scale;
-        self.hitbox_tete.hauteur = 110.0 * scale;
+        self.head_hitbox.offset_x = 55.0 * scale;
+        self.head_hitbox.offset_y = -90.0 * scale;
+        self.head_hitbox.width = 90.0 * scale;
+        self.head_hitbox.height = 110.0 * scale;
     }
 
-    pub fn hitbox_rect_pied(&self) -> (f32, f32, f32, f32) {
+    pub fn foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         (
-            self.x + self.hitbox_pied.offset_x,
-            self.y + self.hitbox_pied.offset_y,
-            self.hitbox_pied.largeur,
-            self.hitbox_pied.hauteur,
+            self.x + self.foot_hitbox.offset_x,
+            self.y + self.foot_hitbox.offset_y,
+            self.foot_hitbox.width,
+            self.foot_hitbox.height,
         )
     }
 
-    pub fn hitbox_rect_pied_active(&self) -> (f32, f32, f32, f32) {
-        let mut hx = self.x + self.hitbox_pied.offset_x;
-        let mut hy = self.y + self.hitbox_pied.offset_y;
-        let mut hl = self.hitbox_pied.largeur;
-        let mut hh = self.hitbox_pied.hauteur;
+    pub fn active_foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
+        let mut hx = self.x + self.foot_hitbox.offset_x;
+        let mut hy = self.y + self.foot_hitbox.offset_y;
+        let mut hw = self.foot_hitbox.width;
+        let mut hh = self.foot_hitbox.height;
 
-        // Pendant le tir, on avance et on allonge un peu la hitbox du pied
-        // pour suivre l'animation visuelle.
-        let progression_tir = (-self.angle_pied).clamp(0.0, 1.0);
-        if progression_tir > 0.05 {
-            hx -= hl * 0.38 * progression_tir;
-            hy -= hh * 0.20 * progression_tir;
-            hl *= 1.0 + 0.28 * progression_tir;
-            hh *= 1.0 + 0.12 * progression_tir;
+        // During a kick, move and stretch the foot hitbox to match the animation.
+        let shot_progress = (-self.foot_angle).clamp(0.0, 1.0);
+        if shot_progress > 0.05 {
+            hx -= hw * 0.38 * shot_progress;
+            hy -= hh * 0.20 * shot_progress;
+            hw *= 1.0 + 0.28 * shot_progress;
+            hh *= 1.0 + 0.12 * shot_progress;
         }
 
-        (hx, hy, hl, hh)
+        (hx, hy, hw, hh)
     }
 
-    pub fn hitbox_rect_tete(&self) -> (f32, f32, f32, f32) {
+    pub fn head_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         (
-            self.x + self.hitbox_tete.offset_x,
-            self.y + self.hitbox_tete.offset_y,
-            self.hitbox_tete.largeur,
-            self.hitbox_tete.hauteur,
+            self.x + self.head_hitbox.offset_x,
+            self.y + self.head_hitbox.offset_y,
+            self.head_hitbox.width,
+            self.head_hitbox.height,
         )
     }
 
-    pub fn set_hitbox_pied(&mut self, offset_x: f32, offset_y: f32, largeur: f32, hauteur: f32) {
-        self.hitbox_pied.offset_x = offset_x;
-        self.hitbox_pied.offset_y = offset_y;
-        self.hitbox_pied.largeur = largeur;
-        self.hitbox_pied.hauteur = hauteur;
+    pub fn set_foot_hitbox(&mut self, offset_x: f32, offset_y: f32, width: f32, height: f32) {
+        self.foot_hitbox.offset_x = offset_x;
+        self.foot_hitbox.offset_y = offset_y;
+        self.foot_hitbox.width = width;
+        self.foot_hitbox.height = height;
     }
 
-    pub fn set_hitbox_tete(&mut self, offset_x: f32, offset_y: f32, largeur: f32, hauteur: f32) {
-        self.hitbox_tete.offset_x = offset_x;
-        self.hitbox_tete.offset_y = offset_y;
-        self.hitbox_tete.largeur = largeur;
-        self.hitbox_tete.hauteur = hauteur;
+    pub fn set_head_hitbox(&mut self, offset_x: f32, offset_y: f32, width: f32, height: f32) {
+        self.head_hitbox.offset_x = offset_x;
+        self.head_hitbox.offset_y = offset_y;
+        self.head_hitbox.width = width;
+        self.head_hitbox.height = height;
     }
 
-    pub fn largeur_collision(&self) -> f32 {
-        self.largeur_pied.max(self.offset_tete_x + self.largeur_tete)
+    pub fn collision_width(&self) -> f32 {
+        self.foot_width.max(self.head_offset_x + self.head_width)
     }
 
-    pub fn y_pose_au_sol(&self, sol_y: f32) -> f32 {
-        sol_y - self.hauteur_pied + self.hauteur_pied * 0.3
+    pub fn y_at_ground(&self, ground_y: f32) -> f32 {
+        ground_y - self.foot_height + self.foot_height * 0.3
     }
 }

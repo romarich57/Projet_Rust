@@ -1,43 +1,42 @@
-// src/physics.rs
-use crate::models::joueur::Joueur;
+use crate::models::player::Player;
 use macroquad::prelude::screen_width;
-use crate::physics::{GRAVITE_JOUEUR_REFERENCE, niveau_sol};
+use crate::physics::{ground_level, PLAYER_GRAVITY_REFERENCE};
 
 
-pub fn appliquer_physique(joueur: &mut Joueur) {
-    let sol_y = niveau_sol();
-    let y_sol_joueur = joueur.y_pose_au_sol(sol_y);
+pub fn apply_physics(player: &mut Player) {
+    let ground_y = ground_level();
+    let player_ground_y = player.y_at_ground(ground_y);
 
-    joueur.x += joueur.vx;
-    joueur.y += joueur.vy;
+    player.x += player.vx;
+    player.y += player.vy;
     
-    // gravité joueur
-    joueur.vy += GRAVITE_JOUEUR_REFERENCE; 
+    // Player gravity
+    player.vy += PLAYER_GRAVITY_REFERENCE;
     
-    // -- COLLISIONS SOL --
-    if joueur.y > y_sol_joueur { 
-        joueur.y = y_sol_joueur; 
-        joueur.vy = 0.0; // On arrête la chute quand on touche le sol
-        joueur.nb_sauts = 0; // Réinitialise le nombre de sauts disponibles
+    // Ground collision
+    if player.y > player_ground_y {
+        player.y = player_ground_y;
+        player.vy = 0.0;
+        player.jump_count = 0;
     }
 
-    // --- COLLISION BORD GAUCHE (x = 0) ---
-    if joueur.x < 0.0 {
-        joueur.x = 0.0;
-        joueur.vx = 0.0; // On arrête le mouvement horizontal
+    // Left wall
+    if player.x < 0.0 {
+        player.x = 0.0;
+        player.vx = 0.0;
     }
 
-    // --- COLLISION BORD DROIT (Largeur de l'écran) ---
-    let largeur_joueur = joueur.largeur_collision();
-    if joueur.x > screen_width() - largeur_joueur {
-        joueur.x = screen_width() - largeur_joueur;
-        joueur.vx = 0.0;
+    // Right wall
+    let player_width = player.collision_width();
+    if player.x > screen_width() - player_width {
+        player.x = screen_width() - player_width;
+        player.vx = 0.0;
     }
 
-    // --- COLLISION HAUT DE L'ÉCRAN ---
-    if joueur.y < 0.0 {
-        joueur.y = 0.0;
-        joueur.vy = 0.0;
+    // Ceiling
+    if player.y < 0.0 {
+        player.y = 0.0;
+        player.vy = 0.0;
     }
 
 }
