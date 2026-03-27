@@ -3,12 +3,14 @@ mod render;
 mod physics;
 mod input;
 mod ia;
+mod game;
 
 use macroquad::prelude::*;
 use models::ball::Ball;
 use models::player::Player;
 use physics::player_physics;
 use models::player::ControlType;
+use game::Match;
 
 const FOOT_HITBOX_WIDTH_COEF: f32 = 1.0;
 const FOOT_HITBOX_HEIGHT_COEF: f32 = 1.0;
@@ -92,6 +94,8 @@ async fn main() {
     let mut last_height = screen_height();
     let mut debug_hitbox = false;
 
+    let mut soccer_match = Match::new();
+
     loop {
         if (screen_width() - last_width).abs() > f32::EPSILON
             || (screen_height() - last_height).abs() > f32::EPSILON
@@ -134,7 +138,9 @@ async fn main() {
 
         physics::ball_physics::apply_ball_physics(&mut ball);
 
-        render::draw_all(&players, &stadium_texture, &ball, debug_hitbox);
+        soccer_match.update(&mut ball, &mut players);
+
+        render::draw_all(&players, &stadium_texture, &ball, debug_hitbox, &soccer_match);
 
         next_frame().await
     }
