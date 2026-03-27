@@ -1,5 +1,6 @@
 use crate::models::player::Player;
 use macroquad::prelude::screen_width;
+use macroquad::time::get_frame_time;
 use crate::physics::{ground_level, PLAYER_GRAVITY_REFERENCE};
 
 
@@ -7,11 +8,15 @@ pub fn apply_physics(player: &mut Player) {
     let ground_y = ground_level();
     let player_ground_y = player.y_at_ground(ground_y);
 
-    player.x += player.vx;
-    player.y += player.vy;
+    // Framerate independence: 75 FPS reference keeps existing tuning
+    let dt = get_frame_time().clamp(1.0 / 240.0, 1.0 / 20.0);
+    let scale = dt * 75.0;
+
+    player.x += player.vx * scale;
+    player.y += player.vy * scale;
     
     // Player gravity
-    player.vy += PLAYER_GRAVITY_REFERENCE;
+    player.vy += PLAYER_GRAVITY_REFERENCE * scale;
     
     // Ground collision
     if player.y > player_ground_y {

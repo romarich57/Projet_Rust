@@ -24,7 +24,7 @@ impl Match {
         }
     }
 
-    pub fn update(&mut self, ball: &mut Ball, player: &mut Player, start_x_player: f32) {
+    pub fn update(&mut self, ball: &mut Ball, players: &mut [Player]) {
         match self.state {
             GameState::Playing => {
                 let left_goal_x = physics::GOAL_MARGIN_REFERENCE * physics::scale_x();
@@ -50,11 +50,18 @@ impl Match {
 
                 
                 if *timer <= 0.0 {
-                    // reset du joueur 
-                    player.x = start_x_player; 
-                    player.y = player.y_at_ground(physics::ground_level());
-                    player.vx = 0.0;
-                    player.vy = 0.0;
+                    // reset de tous les joueurs
+                    for player in players.iter_mut() {
+                        let margin = 20.0 * physics::scale_x();
+                        player.x = if player.side < 0 {
+                            margin
+                        } else {
+                            screen_width() - player.collision_width() - margin
+                        };
+                        player.y = player.y_at_ground(physics::ground_level());
+                        player.vx = 0.0;
+                        player.vy = 0.0;
+                    }
 
                     // reset du ballon au centre, prêt à être lancé vers le but du joueur qui a encaissé le but
                     let bcr = ball.hitbox.radius;
