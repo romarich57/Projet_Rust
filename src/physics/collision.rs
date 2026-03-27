@@ -82,6 +82,33 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         }
     }
 
+    // Body collision: covers the torso between head and feet.
+    let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
+    if body_h > 0.0 {
+        if let Some((nx, ny, penetration)) = rect_circle_collision(
+            body_x,
+            body_y,
+            body_w,
+            body_h,
+            bcx,
+            bcy,
+            bcr,
+        ) {
+            // Push ball fully out of the body
+            ball.x += nx * penetration;
+            ball.y += ny * penetration;
+
+            // Gentle deflection: mostly sideways, slight upward lift
+            let deflect_force = 2.5;
+            ball.vx += nx * deflect_force + player.vx * 0.25;
+            ball.vy += ny * deflect_force * 0.5;
+            ball.vy -= 0.8;
+            if ball.vy > -1.5 {
+                ball.vy = -1.5;
+            }
+        }
+    }
+
     limit_ball_speed(ball, 18.0);
 }
 

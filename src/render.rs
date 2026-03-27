@@ -71,6 +71,7 @@ fn draw_debug_hitbox(player: &Player, ball: &Ball) {
     let (foot_base_x, foot_base_y, foot_base_w, foot_base_h) = player.foot_hitbox_rect();
     let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
     let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
+    let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
 
     let ball_hitbox = ball.circle_hitbox();
     let ball_cx = ball_hitbox.0;
@@ -80,6 +81,9 @@ fn draw_debug_hitbox(player: &Player, ball: &Ball) {
     draw_rectangle_lines(foot_base_x, foot_base_y, foot_base_w, foot_base_h, 1.0, PINK);
     draw_rectangle_lines(foot_x, foot_y, foot_w, foot_h, 2.0, RED);
     draw_rectangle_lines(head_x, head_y, head_w, head_h, 2.0, ORANGE);
+    if body_h > 0.0 {
+        draw_rectangle_lines(body_x, body_y, body_w, body_h, 2.0, BLUE);
+    }
     draw_rectangle_lines(
         ball_cx - ball_r,
         ball_cy - ball_r,

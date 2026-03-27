@@ -67,7 +67,7 @@ impl Player {
             },
             head_hitbox: HitboxRect {
                 offset_x: 55.0,
-                offset_y: -90.0,
+                offset_y: 10.0,
                 width: 90.0,
                 height: 110.0,
             },
@@ -108,7 +108,7 @@ impl Player {
         self.foot_hitbox.height = 55.0 * scale;
 
         self.head_hitbox.offset_x = 55.0 * scale;
-        self.head_hitbox.offset_y = -90.0 * scale;
+        self.head_hitbox.offset_y = 10.0 * scale;
         self.head_hitbox.width = 90.0 * scale;
         self.head_hitbox.height = 110.0 * scale;
     }
@@ -166,6 +166,26 @@ impl Player {
             self.head_hitbox.width,
             self.head_hitbox.height,
         )
+    }
+
+    /// Rectangle covering the player body between head and foot hitboxes.
+    /// Prevents the ball from tunneling through the gap.
+    pub fn body_hitbox_rect(&self) -> (f32, f32, f32, f32) {
+        let (head_x, head_y, head_w, head_h) = self.head_hitbox_rect();
+        let (foot_x, foot_y, foot_w, _foot_h) = self.foot_hitbox_rect();
+
+        // X: union of head and foot horizontal spans
+        let body_left = head_x.min(foot_x);
+        let body_right = (head_x + head_w).max(foot_x + foot_w);
+
+        // Y: from bottom of head hitbox to top of foot hitbox
+        let body_top = head_y + head_h;
+        let body_bottom = foot_y;
+
+        let body_w = body_right - body_left;
+        let body_h = (body_bottom - body_top).max(0.0);
+
+        (body_left, body_top, body_w, body_h)
     }
 
     pub fn set_foot_hitbox(&mut self, offset_x: f32, offset_y: f32, width: f32, height: f32) {
