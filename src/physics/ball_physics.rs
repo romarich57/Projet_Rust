@@ -1,68 +1,104 @@
-use crate::models::ballon::Ballon;
+use crate::models::ball::Ball;
 use macroquad::prelude::screen_width;
+use crate::physics::{
+    BALL_GRAVITY_REFERENCE, CROSSBAR_THICKNESS_REFERENCE, CROSSBAR_Y_REFERENCE,
+    GOAL_MARGIN_REFERENCE, ground_level, scale_x, scale_y,
+};
 
-pub fn appliquer_physique_ballon(ballon: &mut Ballon) {
-    let niveau_sol = 410.0; 
-    let poteau_gauche_x = 110.0; // Limite du poteau gauche
-    let poteau_droit_x = screen_width() - 110.0; // Limite du poteau droit
-    let barre_y = 200.0; // Hauteur de la barre transversale
-    let epaisseur = 15.0; // L'épaisseur de la barre
+pub fn apply_ball_physics(ball: &mut Ball) {
+    let ground_y = ground_level();
+    let left_goal_x = GOAL_MARGIN_REFERENCE * scale_x();
+    let right_goal_x = screen_width() - GOAL_MARGIN_REFERENCE * scale_x();
+    let crossbar_y = CROSSBAR_Y_REFERENCE * scale_y();
+    let crossbar_thickness = CROSSBAR_THICKNESS_REFERENCE * scale_y();
 
+    // Gravity
+    ball.vy += BALL_GRAVITY_REFERENCE;
 
-    // Gravité
-    ballon.vy += 0.2; 
-    
-    // Mise à jour de la position avec la vélocité
-    ballon.x += ballon.vx;
-    ballon.y += ballon.vy;
-    
-    
-    ballon.angle += ballon.vx * 0.05; 
+    // Update position from velocity
+    ball.x += ball.vx;
+    ball.y += ball.vy;
 
-    if ballon.x < poteau_gauche_x || ballon.x > poteau_droit_x {
-        // rebond par dessus 
-        if ballon.y + ballon.rayon > barre_y && ballon.y < barre_y && ballon.vy > 0.0 {
-            ballon.y = barre_y - ballon.rayon;
-            ballon.vy = -ballon.vy * 0.8; // Rebond vers le haut
-            ballon.vx *= 0.98; // Légère friction sur le métal
+    ball.angle += ball.vx * 0.05;
+
+    let (bcx, bcy, bcr) = ball.circle_hitbox();
+
+    if bcx < left_goal_x || bcx > right_goal_x {
+        // Bounce on top of crossbar
+        if bcy + bcr > crossbar_y && bcy < crossbar_y && ball.vy > 0.0 {
+            ball.y = crossbar_y - bcr - ball.hitbox.offset_y;
+            ball.vy = -ball.vy * 0.8;
+            ball.vx *= 0.98;
         }
-        // Rebond par dessous
-        else if ballon.y - ballon.rayon < barre_y + epaisseur && ballon.y > barre_y && ballon.vy < 0.0 {
-            ballon.y = barre_y + epaisseur + ballon.rayon;
-            ballon.vy = -ballon.vy * 0.8; // Rebond vers le bas
+        // Bounce under crossbar
+        else if bcy - bcr < crossbar_y + crossbar_thickness && bcy > crossbar_y && ball.vy < 0.0 {
+            ball.y = crossbar_y + crossbar_thickness + bcr - ball.hitbox.offset_y;
+            ball.vy = -ball.vy * 0.8;
         }
     }
 
-
-    // Si le ballon est rentré dans la cage (derrière la ligne de but et sous la barre)
-    if (ballon.x < poteau_gauche_x || ballon.x > poteau_droit_x) && ballon.y > barre_y {
-        ballon.vx *= 0.93; // Le filet freine le ballon 
+    // If the ball is behind the goal line under the crossbar, damp horizontal speed.
+    if (bcx < left_goal_x || bcx > right_goal_x) && bcy > crossbar_y {
+        ball.vx *= 0.93;
     }
 
-   // on consider que le sol est à y = 580
-    if ballon.y + ballon.rayon > niveau_sol { 
-        ballon.y = niveau_sol - ballon.rayon;
-        ballon.vy = -ballon.vy * 0.75; // Rebond : perte de vitesse
-        ballon.vx *= 0.98; // Friction : légère perte de vitesse horizontale
+    // Ground bounce only for meaningful downward impacts.
+    if bcy + bcr > ground_y {
+        ball.y = ground_y - bcr - ball.hitbox.offset_y;
+
+        if ball.vy > 0.0 {
+            let impact_speed = ball.vy;
+            let bounce_threshold = 1.1 * scale_y();
+
+            if impact_speed > bounce_threshold {
+                ball.vy = -impact_speed * 0.62;
+            } else {
+                ball.vy = 0.0;
+            }
+        } else {
+            ball.vy = 0.0;
+        }
+
+        // Ground friction
+        ball.vx *= 0.94;
+        if ball.vx.abs() < 0.03 * scale_x() {
+            ball.vx = 0.0;
+        }
     }
 
-   // Gestion des collisions avec les murs gauche et droite
+    // Soft force to keep the ball inside the field bounds.
+    let return_zone = 120.0 * scale_x();
+    let return_force = 0.18 * scale_x();
 
-   // Mur gauche
-    if ballon.x - ballon.rayon < 0.0 {
-        ballon.x = ballon.rayon;
-        ballon.vx = -ballon.vx * 0.4;
+    // Left boundary
+    if bcx - bcr < 0.0 {
+        ball.x = bcr - ball.hitbox.offset_x;
+        if ball.vx < 0.0 {
+            ball.vx = 0.0;
+        }
+    }
+    let left_distance = (bcx - bcr).max(0.0);
+    if left_distance < return_zone {
+        let intensity = 1.0 - left_distance / return_zone;
+        ball.vx += return_force * intensity;
     }
 
-    // Mur droit
-    if ballon.x + ballon.rayon > screen_width() {
-        ballon.x = screen_width() - ballon.rayon;
-        ballon.vx = -ballon.vx * 0.4;
+    // Right boundary
+    if bcx + bcr > screen_width() {
+        ball.x = screen_width() - bcr - ball.hitbox.offset_x;
+        if ball.vx > 0.0 {
+            ball.vx = 0.0;
+        }
+    }
+    let right_distance = (screen_width() - (bcx + bcr)).max(0.0);
+    if right_distance < return_zone {
+        let intensity = 1.0 - right_distance / return_zone;
+        ball.vx -= return_force * intensity;
     }
 
-    // Collision avec le plafond
-    if ballon.y - ballon.rayon < 0.0 { // 0.0 représente le plafond
-        ballon.y = ballon.rayon;
-        ballon.vy = -ballon.vy * 0.6;
+    // Ceiling collision
+    if bcy - bcr < 0.0 {
+        ball.y = bcr + ball.hitbox.offset_y;
+        ball.vy = -ball.vy * 0.6;
     }
 }

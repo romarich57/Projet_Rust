@@ -4,53 +4,96 @@ mod physics;
 mod input;
 
 use macroquad::prelude::*;
-use models::ballon::Ballon;
+use models::ball::Ball;
+use models::player::Player;
 use physics::player_physics;
-use models::joueur::Joueur;
 
+const FOOT_HITBOX_WIDTH_COEF: f32 = 1.0;
+const FOOT_HITBOX_HEIGHT_COEF: f32 = 1.0;
+const HEAD_HITBOX_WIDTH_COEF: f32 = 1.0;
+const HEAD_HITBOX_HEIGHT_COEF: f32 = 1.0;
 
+fn apply_player_hitbox_tuning(player: &mut Player) {
+    player.set_foot_hitbox(
+        player.foot_hitbox.offset_x,
+        player.foot_hitbox.offset_y,
+        player.foot_hitbox.width * FOOT_HITBOX_WIDTH_COEF,
+        player.foot_hitbox.height * FOOT_HITBOX_HEIGHT_COEF,
+    );
 
-fn configuration_fenetre() -> Conf {
+    player.set_head_hitbox(
+        player.head_hitbox.offset_x,
+        player.head_hitbox.offset_y,
+        player.head_hitbox.width * HEAD_HITBOX_WIDTH_COEF,
+        player.head_hitbox.height * HEAD_HITBOX_HEIGHT_COEF,
+    );
+}
+
+fn window_config() -> Conf {
     Conf {
-        window_title: "Test Ballon - Head Soccer".to_owned(),
-        window_width: 1000,      
-        window_height: 600,     
-        window_resizable: false, // Empêche la redimension de la fenêtre
+        window_title: "Head Soccer".to_owned(),
+        window_width: 1000,
+        window_height: 600,
+        window_resizable: false,
         ..Default::default()
     }
 }
 
-#[macroquad::main(configuration_fenetre())]
+#[macroquad::main(window_config())]
 async fn main() {
+    let ball_texture = load_texture("src/assets/ballon/ballon.png").await.unwrap();
+    let mut ball = Ball::new(
+        screen_width() / 2.0,
+        physics::ground_level() + 200.0 * physics::scale_y(),
+        30.0 * physics::scale_x().min(physics::scale_y()),
+        ball_texture,
+    );
+    ball.set_circle_hitbox(0.0, 0.0, ball.visual_radius() * 0.7);
 
-    let t_ballon = load_texture("src/assets/ballon/ballon.png").await.unwrap();
+    let stadium_texture = load_texture("src/assets/stade/stade.png").await.unwrap();
+    let head_texture = load_texture("src/assets/joueur/tete.png").await.unwrap();
+    let foot_texture = load_texture("src/assets/joueur/pied.png").await.unwrap();
 
-    // Initialisation du ballon au milieu de l'écran
-    let mut ballon = Ballon::new(screen_width() / 2.0, 100.0, 30.0, t_ballon);
+    let mut player = Player::new(0.0, 0.0, head_texture, foot_texture);
+    player.apply_relative_screen_size(screen_width(), screen_height());
+    apply_player_hitbox_tuning(&mut player);
+    player.y = player.y_at_ground(physics::ground_level());
+    player.x = screen_width() - player.collision_width() - 20.0 * physics::scale_x();
 
-    // Chargement des textures (indispensable au début)
-    let t_stade = load_texture("src/assets/stade/stade.png").await.unwrap(); //await pour attendre que la texture soit chargée avant de continuer. unwrap() pour gérer les erreurs de chargement (ici on panique si ça échoue, mais en vrai il faudrait mieux gérer ça).
-    let t_tete = load_texture("src/assets/joueur/tete.png").await.unwrap(); //unwrap() est une méthode qui permet de récupérer la valeur contenue dans un Result ou Option. Si le résultat est Err ou None, unwrap() fera paniquer le programme. C'est une manière rapide de gérer les erreurs, mais dans un vrai projet, il serait préférable d'utiliser une gestion d'erreur plus robuste.
-    let t_pied = load_texture("src/assets/joueur/pied.png").await.unwrap();
-
-    let mut joueur = Joueur::new(600.0, 580.0, t_tete, t_pied);
+    let mut last_width = screen_width();
+    let mut last_height = screen_height();
+    let mut debug_hitbox = false;
 
     loop {
-        // Pour tester le rebond, on peut appliquer une impulsion au ballon lorsque la barre d'espace est pressée
-        if is_key_pressed(KeyCode::Space) {
-            ballon.vy = -15.0; // Impulsion vers le haut
-            ballon.vx = 8.0;   // Impulsion vers la droite
+        if (screen_width() - last_width).abs() > f32::EPSILON
+            || (screen_height() - last_height).abs() > f32::EPSILON
+        {
+            player.apply_relative_screen_size(screen_width(), screen_height());
+            apply_player_hitbox_tuning(&mut player);
+            player.y = player.y_at_ground(physics::ground_level());
+
+            let right_margin = 20.0 * physics::scale_x();
+            let x_max = screen_width() - player.collision_width() - right_margin;
+            player.x = player.x.clamp(0.0, x_max);
+
+            last_width = screen_width();
+            last_height = screen_height();
         }
 
-        input::gerer_clavier(&mut joueur);
-        input::update_animations(&mut joueur);
+        if is_key_pressed(KeyCode::Y) {
+            debug_hitbox = !debug_hitbox;
+        }
 
-        player_physics::appliquer_physique(&mut joueur);
+        input::handle_keyboard(&mut player);
+        input::update_animations(&mut player);
 
-        
-        render::dessiner_tout(&joueur, &t_stade, &ballon);
-        physics::ball_physics::appliquer_physique_ballon(&mut ballon);
-        render::dessiner_tout(&joueur, &t_stade, &ballon);
+        player_physics::apply_physics(&mut player);
+
+        physics::collision::apply_player_ball_collision(&player, &mut ball);
+
+        physics::ball_physics::apply_ball_physics(&mut ball);
+
+        render::draw_all(&player, &stadium_texture, &ball, debug_hitbox);
 
         next_frame().await
     }
