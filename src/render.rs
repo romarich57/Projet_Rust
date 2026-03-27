@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use crate::models::ball::Ball;
 use crate::models::player::Player;
 
-pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug_hitbox: bool) {
+pub fn draw_all(players: &[Player], stadium_texture: &Texture2D, ball: &Ball, debug_hitbox: bool) {
     draw_texture_ex(stadium_texture, 0.0, 0.0, WHITE, DrawTextureParams {
         dest_size: Some(vec2(screen_width(), screen_height())),
         ..Default::default()
@@ -20,31 +20,50 @@ pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug
         },
     );
 
-    draw_texture_ex(
-        &player.foot_texture,
-        player.x,
-        player.y,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(vec2(player.foot_width, player.foot_height)),
-            rotation: player.foot_angle,
-            ..Default::default()
-        },
-    );
+    for player in players {
+        let mut foot_draw_x = player.x;
+        // If facing left (side == -1), drawing with negative width flips the image LEFT of 'foot_draw_x'.
+        // So we must shift 'foot_draw_x' right by foot_width to keep the image within its actual bounds.
+        if player.side == -1 {
+            foot_draw_x += player.foot_width;
+        }
 
-    draw_texture_ex(
-        &player.head_texture,
-        player.x + player.head_offset_x,
-        player.y + player.head_offset_y,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(vec2(player.head_width, player.head_height)),
-            ..Default::default()
-        },
-    );
+        draw_texture_ex(
+            &player.foot_texture,
+            foot_draw_x,
+            player.y,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(player.foot_width * player.side as f32, player.foot_height)),
+                rotation: player.foot_angle,
+                ..Default::default()
+            },
+        );
+
+        let mut head_draw_x = player.x + player.head_offset_x;
+        // Invert horizontal rendering width for orientation:
+        // if player.side == -1, drawing with negative width flips the image.
+        if player.side == -1 {
+            head_draw_x += player.head_width;
+        }
+
+        draw_texture_ex(
+            &player.head_texture,
+            head_draw_x,
+            player.y + player.head_offset_y,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(player.head_width * player.side as f32, player.head_height)),
+                ..Default::default()
+            },
+        );
+    }
 
     if debug_hitbox {
-        draw_debug_hitbox(player, ball);
+        for player in players {
+            draw_debug_hitbox(player, ball);
+        }
+        draw_text("DEBUG HITBOX (Y)", 15.0, 30.0, 26.0, YELLOW);
     }
 }
 
@@ -69,6 +88,4 @@ fn draw_debug_hitbox(player: &Player, ball: &Ball) {
         2.0,
         LIME,
     );
-
-    draw_text("DEBUG HITBOX (Y)", 15.0, 30.0, 26.0, YELLOW);
 }

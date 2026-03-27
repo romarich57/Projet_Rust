@@ -9,6 +9,17 @@ pub struct HitboxRect {
     pub height: f32,
 }
 
+// Auto-derive common traits:
+// - Copy/Clone: allow cheap duplication (no move semantics issues)
+// - Debug: enables {:?} printing
+// - PartialEq/Eq: enables == comparisons
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ControlType {
+    Player1,
+    Player2,
+    IA,
+}
+
 pub struct Player {
     pub x: f32,
     pub y: f32,
@@ -27,11 +38,13 @@ pub struct Player {
     pub head_offset_y: f32,
     pub foot_hitbox: HitboxRect,
     pub head_hitbox: HitboxRect,
+    pub control_type: ControlType,
+    pub side: i32, // -1 for left player, +1 for right player to determine facing direction
 }
 
 impl Player {
     
-    pub fn new(x: f32, y: f32, tex_t: Texture2D, tex_p: Texture2D) -> Self {
+    pub fn new(x: f32, y: f32, tex_t: Texture2D, tex_p: Texture2D, control_type: ControlType, side: i32) -> Self {
         Self {
             x, y,
             vx: 0.0, vy: 0.0,
@@ -58,6 +71,8 @@ impl Player {
                 width: 90.0,
                 height: 110.0,
             },
+            control_type: control_type,
+            side: side,
         }
     }
 
@@ -99,8 +114,13 @@ impl Player {
     }
 
     pub fn foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
+        let mut ox = self.foot_hitbox.offset_x;
+        // Flip the offset if looking left (side == 1)
+        if self.side == 1 {
+            ox = self.foot_width - ox - self.foot_hitbox.width;
+        }
         (
-            self.x + self.foot_hitbox.offset_x,
+            self.x + ox,
             self.y + self.foot_hitbox.offset_y,
             self.foot_hitbox.width,
             self.foot_hitbox.height,
@@ -108,7 +128,12 @@ impl Player {
     }
 
     pub fn active_foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
-        let mut hx = self.x + self.foot_hitbox.offset_x;
+        let mut ox = self.foot_hitbox.offset_x;
+        if self.side == 1 {
+            ox = self.foot_width - ox - self.foot_hitbox.width;
+        }
+        
+        let mut hx = self.x + ox;
         let mut hy = self.y + self.foot_hitbox.offset_y;
         let mut hw = self.foot_hitbox.width;
         let mut hh = self.foot_hitbox.height;
@@ -116,7 +141,12 @@ impl Player {
         // During a kick, move and stretch the foot hitbox to match the animation.
         let shot_progress = (-self.foot_angle).clamp(0.0, 1.0);
         if shot_progress > 0.05 {
-            hx -= hw * 0.38 * shot_progress;
+            // Forward movement depends on facing direction
+            if self.side == -1 {
+                hx += hw * 0.38 * shot_progress; // kick right
+            } else {
+                hx -= hw * 0.38 * shot_progress; // kick left
+            }
             hy -= hh * 0.20 * shot_progress;
             hw *= 1.0 + 0.28 * shot_progress;
             hh *= 1.0 + 0.12 * shot_progress;
@@ -126,9 +156,13 @@ impl Player {
     }
 
     pub fn head_hitbox_rect(&self) -> (f32, f32, f32, f32) {
+        let mut ox = self.head_hitbox.offset_x;
+        if self.side == 1 {
+            ox = self.head_width - ox - self.head_hitbox.width;
+        }
         (
-            self.x + self.head_hitbox.offset_x,
-            self.y + self.head_hitbox.offset_y,
+            self.x + self.head_offset_x + ox,
+            self.y + self.head_offset_y + self.head_hitbox.offset_y,
             self.head_hitbox.width,
             self.head_hitbox.height,
         )

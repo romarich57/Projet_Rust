@@ -2,11 +2,13 @@ mod models;
 mod render;
 mod physics;
 mod input;
+mod ia;
 
 use macroquad::prelude::*;
 use models::ball::Ball;
 use models::player::Player;
 use physics::player_physics;
+use models::player::ControlType;
 
 const FOOT_HITBOX_WIDTH_COEF: f32 = 1.0;
 const FOOT_HITBOX_HEIGHT_COEF: f32 = 1.0;
@@ -54,11 +56,37 @@ async fn main() {
     let head_texture = load_texture("src/assets/joueur/tete.png").await.unwrap();
     let foot_texture = load_texture("src/assets/joueur/pied.png").await.unwrap();
 
-    let mut player = Player::new(0.0, 0.0, head_texture, foot_texture);
-    player.apply_relative_screen_size(screen_width(), screen_height());
-    apply_player_hitbox_tuning(&mut player);
-    player.y = player.y_at_ground(physics::ground_level());
-    player.x = screen_width() - player.collision_width() - 20.0 * physics::scale_x();
+    let mut players = vec![
+        Player::new(
+            0.0,
+            0.0,
+            head_texture.clone(), // Clone to avoid move semantics issues because Texture2D is not Copy
+            foot_texture.clone(),
+            ControlType::Player1,
+            1,
+        ),
+        Player::new(
+            0.0,
+            0.0,
+            head_texture,
+            foot_texture,
+            ControlType::IA,
+            -1,
+        ),
+    ];
+
+    for player in &mut players {
+        player.apply_relative_screen_size(screen_width(), screen_height());
+        apply_player_hitbox_tuning(player);
+        player.y = player.y_at_ground(physics::ground_level());
+
+        let margin = 20.0 * physics::scale_x();
+        player.x = if player.side < 0 {
+            margin
+        } else {
+            screen_width() - player.collision_width() - margin
+        };
+    }
 
     let mut last_width = screen_width();
     let mut last_height = screen_height();
@@ -68,13 +96,15 @@ async fn main() {
         if (screen_width() - last_width).abs() > f32::EPSILON
             || (screen_height() - last_height).abs() > f32::EPSILON
         {
-            player.apply_relative_screen_size(screen_width(), screen_height());
-            apply_player_hitbox_tuning(&mut player);
-            player.y = player.y_at_ground(physics::ground_level());
+            for player in &mut players {
+                player.apply_relative_screen_size(screen_width(), screen_height());
+                apply_player_hitbox_tuning(player);
+                player.y = player.y_at_ground(physics::ground_level());
 
-            let right_margin = 20.0 * physics::scale_x();
-            let x_max = screen_width() - player.collision_width() - right_margin;
-            player.x = player.x.clamp(0.0, x_max);
+                let right_margin = 20.0 * physics::scale_x();
+                let x_max = screen_width() - player.collision_width() - right_margin;
+                player.x = player.x.clamp(0.0, x_max);
+            }
 
             last_width = screen_width();
             last_height = screen_height();
@@ -84,16 +114,27 @@ async fn main() {
             debug_hitbox = !debug_hitbox;
         }
 
-        input::handle_keyboard(&mut player);
-        input::update_animations(&mut player);
+        for player in &mut players {
+            match player.control_type {
+                ControlType::IA => ia::handle_ai(player, &ball),
+                _ => input::handle_keyboard(player),
+            }
+            input::update_animations(player);
+            player_physics::apply_physics(player);
+        }
 
-        player_physics::apply_physics(&mut player);
+        if players.len() >= 2 {
+            let (left, right) = players.split_at_mut(1);
+            physics::collision::apply_player_player_collision(&mut left[0], &mut right[0]);
+        }
 
-        physics::collision::apply_player_ball_collision(&player, &mut ball);
+        for player in &players {
+            physics::collision::apply_player_ball_collision(player, &mut ball);
+        }
 
         physics::ball_physics::apply_ball_physics(&mut ball);
 
-        render::draw_all(&player, &stadium_texture, &ball, debug_hitbox);
+        render::draw_all(&players, &stadium_texture, &ball, debug_hitbox);
 
         next_frame().await
     }

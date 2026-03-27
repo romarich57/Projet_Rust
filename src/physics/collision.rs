@@ -54,7 +54,9 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
             let contact_y = ((bcy - foot_y) / foot_h).clamp(0.0, 1.0);
             let lob_bonus = (1.0 - contact_y) * 0.35;
 
-            let dir_x = if nx.abs() > 0.05 { nx } else { -1.0 };
+            // Kick direction depends on which player is kicking
+            let expected_dir = -player.side as f32; // -1 -> 1 (Right), 1 -> -1 (Left)
+            let dir_x = if nx.abs() > 0.05 { nx } else { expected_dir };
             let dir_y = -(0.35 + 0.70 * shot_progress + lob_bonus);
 
             let force = 8.5 + 6.5 * shot_progress;
@@ -142,5 +144,37 @@ fn limit_ball_speed(ball: &mut Ball, vmax: f32) {
         let scale = vmax / speed;
         ball.vx *= scale;
         ball.vy *= scale;
+    }
+}
+
+pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
+    // Prevent players from walking through each other
+    let hw1 = p1.collision_width()/3.0; // Use a fraction of the collision width for more forgiving collisions
+    let hw2 = p2.collision_width()/3.0;
+
+    let c1 = p1.x + hw1;
+    let c2 = p2.x + hw2;
+
+    let dx = c2 - c1;
+    let min_dist = hw1 + hw2 - 1.0; // small leniency
+
+    if dx.abs() < min_dist {
+        let overlap = min_dist - dx.abs();
+        let push = overlap / 2.0;
+
+        if dx > 0.0 {
+            // p2 is mostly to the right
+            p1.x -= push;
+            p2.x += push;
+        } else {
+            // p2 is mostly to the left
+            p1.x += push;
+            p2.x -= push;
+        }
+
+        // Dampen relative horizontal velocity slightly to avoid sliding effects
+        let avg_vx = (p1.vx + p2.vx) * 0.5;
+        p1.vx = avg_vx;
+        p2.vx = avg_vx;
     }
 }
