@@ -1,7 +1,91 @@
 {
-  "solo_bot_wins": 0,
-  "solo_bot_losses": 9,
+  "solo_bot_wins": 9,
+  "solo_bot_losses": 13,
   "matches": [
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774794721
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774794593
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774794276
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774794200
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774792630
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774792377
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774792305
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774792228
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774792024
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774791748
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774791673
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774791603
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774790395
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774790225
+    },
     {
       "mode": "OneVsOne",
       "left_score": 0,
@@ -37,60 +121,6 @@
       "left_score": 0,
       "right_score": 2,
       "recorded_at_unix_secs": 1774787662
-    },
-    {
-      "mode": "Solo",
-      "left_score": 1,
-      "right_score": 1,
-      "recorded_at_unix_secs": 1774787586
-    },
-    {
-      "mode": "Solo",
-      "left_score": 1,
-      "right_score": 2,
-      "recorded_at_unix_secs": 1774787509
-    },
-    {
-      "mode": "Solo",
-      "left_score": 1,
-      "right_score": 3,
-      "recorded_at_unix_secs": 1774787345
-    },
-    {
-      "mode": "OneVsOne",
-      "left_score": 0,
-      "right_score": 0,
-      "recorded_at_unix_secs": 1774780219
-    },
-    {
-      "mode": "OneVsOne",
-      "left_score": 0,
-      "right_score": 0,
-      "recorded_at_unix_secs": 1774777968
-    },
-    {
-      "mode": "Solo",
-      "left_score": 1,
-      "right_score": 5,
-      "recorded_at_unix_secs": 1774758193
-    },
-    {
-      "mode": "Solo",
-      "left_score": 2,
-      "right_score": 3,
-      "recorded_at_unix_secs": 1774757577
-    },
-    {
-      "mode": "Solo",
-      "left_score": 0,
-      "right_score": 7,
-      "recorded_at_unix_secs": 1774755721
-    },
-    {
-      "mode": "OneVsOne",
-      "left_score": 4,
-      "right_score": 2,
-      "recorded_at_unix_secs": 1774750550
     }
   ]
 }
