@@ -70,7 +70,7 @@ impl Player {
             foot_height: 85.0,
             head_width: 200.0,
             head_height: 170.0,
-            head_offset_x: 5.0,
+            head_offset_x: 5.0 ,
             head_offset_y: -95.0,
             foot_hitbox: HitboxRect {
                 offset_x: 45.0,

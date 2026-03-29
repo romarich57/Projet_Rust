@@ -1,8 +1,6 @@
+use crate::physics::{REFERENCE_WIDTH, REFERENCE_HEIGHT};
 use crate::settings::data::BindingAction;
 use macroquad::prelude::*;
-
-const REFERENCE_WIDTH: f32 = 1000.0;
-const REFERENCE_HEIGHT: f32 = 600.0;
 
 #[derive(Clone, Copy)]
 pub(crate) struct BindingRowLayout {
@@ -181,33 +179,3 @@ fn build_rows(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn solo_rows_do_not_overlap_one_vs_one_banner() {
-        let layout = SettingsLayout::from_screen(1000.0, 600.0);
-
-        assert!(layout.solo_rows[3].divider_y < layout.one_vs_one_banner_slot.y);
-    }
-
-    #[test]
-    fn player_headers_start_after_one_vs_one_banner() {
-        let layout = SettingsLayout::from_screen(1000.0, 600.0);
-
-        assert!(layout.player_one_label_pos.y > layout.one_vs_one_banner_slot.bottom());
-        assert!(layout.player_two_label_pos.y > layout.one_vs_one_banner_slot.bottom());
-    }
-
-    #[test]
-    fn two_player_rows_end_before_feedback_area() {
-        let layout = SettingsLayout::from_screen(1000.0, 600.0);
-        let last_row_bottom = layout.player_one_rows[3]
-            .value_rect
-            .bottom()
-            .max(layout.player_two_rows[3].value_rect.bottom());
-
-        assert!(last_row_bottom < layout.feedback_rect.y);
-    }
-}

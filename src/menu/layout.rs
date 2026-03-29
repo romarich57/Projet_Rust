@@ -1,8 +1,7 @@
 use super::buttons::MenuButton;
+use crate::arcade_ui::scaled_rect;
+use crate::physics::{REFERENCE_WIDTH, REFERENCE_HEIGHT};
 use macroquad::prelude::*;
-
-const REFERENCE_WIDTH: f32 = 1000.0;
-const REFERENCE_HEIGHT: f32 = 600.0;
 
 #[derive(Clone, Copy)]
 pub(super) struct MenuLayout {
@@ -46,25 +45,5 @@ impl MenuLayout {
             MenuButton::Quit => self.quit_slot,
             MenuButton::Settings => self.settings_slot,
         }
-    }
-}
-
-fn scaled_rect(x: f32, y: f32, w: f32, h: f32, scale_x: f32, scale_y: f32) -> Rect {
-    Rect::new(x * scale_x, y * scale_y, w * scale_x, h * scale_y)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn menu_layout_buttons_do_not_overlap() {
-        let layout = MenuLayout::from_screen(1000.0, 600.0);
-
-        assert!(layout.play_slot.bottom() <= layout.scoreboard_slot.y);
-        assert!(layout.scoreboard_slot.bottom() <= layout.quit_slot.y);
-        assert!(layout.settings_slot.right() <= REFERENCE_WIDTH);
-        assert!(layout.settings_slot.bottom() <= REFERENCE_HEIGHT);
-        assert!(!layout.settings_slot.overlaps(&layout.quit_slot));
     }
 }

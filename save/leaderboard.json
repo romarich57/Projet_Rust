@@ -1,7 +1,19 @@
 {
   "solo_bot_wins": 0,
-  "solo_bot_losses": 5,
+  "solo_bot_losses": 7,
   "matches": [
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 6,
+      "recorded_at_unix_secs": 1774792722
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 6,
+      "recorded_at_unix_secs": 1774792582
+    },
     {
       "mode": "Solo",
       "left_score": 2,
