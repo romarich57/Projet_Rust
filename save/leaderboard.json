@@ -4,11 +4,6 @@
   "matches": [
     {
       "mode": "Solo",
-  "solo_bot_wins": 0,
-  "solo_bot_losses": 5,
-  "matches": [
-    {
-      "mode": "Solo",
       "left_score": 2,
       "right_score": 3,
       "recorded_at_unix_secs": 1774790756
