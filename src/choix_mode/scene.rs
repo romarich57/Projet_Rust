@@ -1,9 +1,9 @@
 use super::{
-    assets::ModeSelectionAssets, buttons::ModeSelectionButton, draw::draw_vs_text,
+    assets::ModeSelectionAssets, buttons::ModeSelectionButton,
     layout::ModeSelectionLayout,
 };
 use crate::app::SceneCommand;
-use crate::arcade_ui::{draw_slot_texture, fit_contain, scale_rect_from_center};
+use crate::arcade_ui::{draw_interactive_texture_button, draw_slot_texture};
 use macroquad::prelude::*;
 
 pub(crate) struct ModeSelectionScene {
@@ -92,30 +92,9 @@ impl ModeSelectionScene {
 
     fn draw_button(&self, button: ModeSelectionButton, texture: &Texture2D) {
         let slot = self.layout.button_rect(button);
-        let base_rect = fit_contain(slot, texture.width(), texture.height());
         let is_hovered = self.hovered_button == Some(button);
         let is_pressed = self.pressed_button == Some(button);
-
-        if is_hovered || is_pressed {
-            let glow_rect = scale_rect_from_center(base_rect, 1.07);
-            draw_texture_ex(
-                texture,
-                glow_rect.x,
-                glow_rect.y,
-                Color::new(1.0, 1.0, 1.0, 0.30),
-                DrawTextureParams {
-                    dest_size: Some(vec2(glow_rect.w, glow_rect.h)),
-                    ..Default::default()
-                },
-            );
-        }
-
-        let scale = match (is_hovered, is_pressed) {
-            (_, true) => 0.98,
-            (true, false) => 1.03,
-            _ => 1.0,
-        };
-        draw_slot_texture(texture, slot, scale);
+        draw_interactive_texture_button(texture, slot, is_hovered, is_pressed);
     }
 
     fn refresh_layout_if_needed(&mut self) {
@@ -127,4 +106,27 @@ impl ModeSelectionScene {
             self.last_screen_size = current_screen_size;
         }
     }
+}
+
+fn draw_vs_text(center: Vec2, font_size: f32) {
+    let label = "VS";
+    let metrics = measure_text(label, None, font_size as u16, 1.0);
+    let x = center.x - metrics.width * 0.5;
+    let y = center.y;
+
+    draw_text(
+        label,
+        x + 5.0,
+        y + 6.0,
+        font_size,
+        Color::new(0.35, 0.12, 0.0, 0.85),
+    );
+    draw_text(
+        label,
+        x + 2.0,
+        y + 2.0,
+        font_size,
+        Color::new(1.0, 0.74, 0.15, 0.62),
+    );
+    draw_text(label, x, y, font_size, Color::new(1.0, 0.96, 0.80, 1.0));
 }

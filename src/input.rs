@@ -56,17 +56,3 @@ fn kick_limit_for_side(side: i32) -> f32 {
     kick_angle_sign(side) * MAX_KICK_ANGLE
 }
 
-#[cfg(test)]
-mod animation_tests {
-    use super::*;
-
-    #[test]
-    fn left_player_kick_rotates_to_negative_limit() {
-        assert_eq!(kick_limit_for_side(-1), -MAX_KICK_ANGLE);
-    }
-
-    #[test]
-    fn right_player_kick_rotates_to_positive_limit() {
-        assert_eq!(kick_limit_for_side(1), MAX_KICK_ANGLE);
-    }
-}

@@ -1,12 +1,11 @@
 use crate::app::SceneCommand;
-use crate::arcade_ui::{draw_cover_texture, draw_slot_texture, fit_contain};
+use crate::arcade_ui::{draw_cover_texture, draw_panel, draw_shadowed_centered_text, draw_slot_texture, fit_contain};
 use crate::leaderboard::assets::LeaderboardAssets;
 use crate::leaderboard::data::{LeaderboardData, MatchHistoryMode};
 use crate::leaderboard::layout::{LeaderboardLayout, LeaderboardRowLayout};
+use crate::physics::scale_y;
 use macroquad::prelude::*;
 
-const PANEL_FILL: Color = Color::new(0.03, 0.09, 0.17, 0.78);
-const PANEL_BORDER: Color = Color::new(0.31, 0.82, 1.0, 0.95);
 const PANEL_LINE: Color = Color::new(0.45, 0.77, 1.0, 0.18);
 const GOLD_TEXT: Color = Color::new(1.0, 0.9, 0.55, 0.98);
 const EMPTY_TEXT: Color = Color::new(0.84, 0.91, 1.0, 0.95);
@@ -108,14 +107,14 @@ impl ScoreboardScene {
             &self.data.solo_bot_wins.to_string(),
             self.layout.victory_value_pos.x,
             self.layout.victory_value_pos.y,
-            66.0 * vertical_scale(),
+            66.0 * scale_y(),
             GOLD_TEXT,
         );
         draw_shadowed_centered_text(
             &self.data.solo_bot_losses.to_string(),
             self.layout.defeat_value_pos.x,
             self.layout.defeat_value_pos.y,
-            66.0 * vertical_scale(),
+            66.0 * scale_y(),
             GOLD_TEXT,
         );
     }
@@ -127,7 +126,7 @@ impl ScoreboardScene {
                 "AUCUN MATCH ENREGISTRE",
                 self.layout.empty_state_center.x,
                 self.layout.empty_state_center.y,
-                28.0 * vertical_scale(),
+                28.0 * scale_y(),
                 EMPTY_TEXT,
             );
             return;
@@ -139,7 +138,7 @@ impl ScoreboardScene {
                 &format!("{} - {}", entry.left_score, entry.right_score),
                 layout.score_center_x,
                 layout.score_baseline_y,
-                34.0 * vertical_scale(),
+                34.0 * scale_y(),
                 GOLD_TEXT,
             );
         }
@@ -171,31 +170,6 @@ impl ScoreboardScene {
             self.last_screen_size = current_screen_size;
         }
     }
-}
-
-fn draw_panel(panel_rect: Rect) {
-    draw_rectangle(
-        panel_rect.x + 6.0,
-        panel_rect.y + 8.0,
-        panel_rect.w,
-        panel_rect.h,
-        Color::new(0.0, 0.0, 0.0, 0.28),
-    );
-    draw_rectangle(
-        panel_rect.x,
-        panel_rect.y,
-        panel_rect.w,
-        panel_rect.h,
-        PANEL_FILL,
-    );
-    draw_rectangle_lines(
-        panel_rect.x,
-        panel_rect.y,
-        panel_rect.w,
-        panel_rect.h,
-        3.0,
-        PANEL_BORDER,
-    );
 }
 
 fn draw_history_row(layout: LeaderboardRowLayout, mode: MatchHistoryMode, badge: &Texture2D) {
@@ -230,27 +204,4 @@ fn draw_history_row(layout: LeaderboardRowLayout, mode: MatchHistoryMode, badge:
             Color::new(1.0, 0.7, 0.25, 0.25),
         );
     }
-}
-
-fn draw_shadowed_centered_text(
-    text: &str,
-    center_x: f32,
-    baseline_y: f32,
-    font_size: f32,
-    color: Color,
-) {
-    let metrics = measure_text(text, None, font_size as u16, 1.0);
-    let draw_x = center_x - metrics.width * 0.5;
-    draw_text(
-        text,
-        draw_x + 2.0,
-        baseline_y + 2.0,
-        font_size,
-        Color::new(0.02, 0.04, 0.08, 0.85),
-    );
-    draw_text(text, draw_x, baseline_y, font_size, color);
-}
-
-fn vertical_scale() -> f32 {
-    screen_height() / 600.0
 }

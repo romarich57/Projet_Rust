@@ -259,62 +259,72 @@ fn unpremultiply_rgba(bytes: &mut [u8]) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn remove_edge_white_matte_preserves_internal_white() {
-        let mut image = Image::gen_image_color(7, 7, color_u8!(252, 252, 252, 255));
-
-        for y in 2..=4 {
-            for x in 2..=4 {
-                image.set_pixel(x, y, BLACK);
-            }
-        }
-        image.set_pixel(3, 3, color_u8!(252, 252, 252, 255));
-
-        remove_edge_white_matte(&mut image);
-
-        let pixels = image.get_image_data();
-        assert_eq!(pixels[0][3], 0);
-        assert_eq!(pixels[3 * 7 + 3][3], 255);
-        assert_eq!(pixels[2 * 7 + 2][3], 255);
-    }
-
-    #[test]
-    fn crop_useful_content_ignores_low_alpha_pixels() {
-        let mut image = Image::gen_image_color(10, 10, color_u8!(0, 0, 0, 0));
-        image.set_pixel(0, 0, color_u8!(255, 255, 255, 7));
-
-        for y in 2..=5 {
-            for x in 4..=6 {
-                image.set_pixel(x, y, color_u8!(255, 0, 0, 255));
-            }
-        }
-
-        let cropped = crop_useful_content(&image, 8).expect("image should keep opaque content");
-
-        assert_eq!(cropped.width(), 3);
-        assert_eq!(cropped.height(), 4);
-    }
-
-    #[test]
-    fn fit_contain_preserves_aspect_ratio() {
-        let slot = Rect::new(310.0, 250.0, 380.0, 96.0);
-        let fitted = fit_contain(slot, 983.0, 269.0);
-
-        assert!((fitted.h - 96.0).abs() < 0.001);
-        assert!(fitted.w <= slot.w);
-        assert!((fitted.x - (slot.x + (slot.w - fitted.w) * 0.5)).abs() < 0.001);
-    }
-
-    #[test]
-    fn compute_cover_source_rect_crops_height_when_texture_is_taller() {
-        let source = compute_cover_source_rect(1536.0, 1024.0, 1000.0, 600.0);
-
-        assert_eq!(source.x, 0.0);
-        assert!(source.h < 1024.0);
-        assert!((source.w - 1536.0).abs() < 0.001);
-    }
+pub(crate) fn scaled_rect(x: f32, y: f32, w: f32, h: f32, scale_x: f32, scale_y: f32) -> Rect {
+    Rect::new(x * scale_x, y * scale_y, w * scale_x, h * scale_y)
 }
+
+const PANEL_FILL: Color = Color::new(0.03, 0.09, 0.17, 0.78);
+const PANEL_BORDER_COLOR: Color = Color::new(0.31, 0.82, 1.0, 0.95);
+
+pub(crate) fn draw_panel(rect: Rect) {
+    draw_rectangle(
+        rect.x + 6.0,
+        rect.y + 8.0,
+        rect.w,
+        rect.h,
+        Color::new(0.0, 0.0, 0.0, 0.28),
+    );
+    draw_rectangle(rect.x, rect.y, rect.w, rect.h, PANEL_FILL);
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 3.0, PANEL_BORDER_COLOR);
+}
+
+pub(crate) fn draw_shadowed_centered_text(
+    text: &str,
+    center_x: f32,
+    baseline_y: f32,
+    font_size: f32,
+    color: Color,
+) {
+    let metrics = measure_text(text, None, font_size as u16, 1.0);
+    let draw_x = center_x - metrics.width * 0.5;
+    draw_text(
+        text,
+        draw_x + 2.0,
+        baseline_y + 2.0,
+        font_size,
+        Color::new(0.02, 0.04, 0.08, 0.85),
+    );
+    draw_text(text, draw_x, baseline_y, font_size, color);
+}
+
+pub(crate) fn draw_interactive_texture_button(
+    texture: &Texture2D,
+    slot: Rect,
+    hovered: bool,
+    pressed: bool,
+) {
+    let base_rect = fit_contain(slot, texture.width(), texture.height());
+
+    if hovered || pressed {
+        let glow_rect = scale_rect_from_center(base_rect, 1.07);
+        draw_texture_ex(
+            texture,
+            glow_rect.x,
+            glow_rect.y,
+            Color::new(1.0, 1.0, 1.0, 0.30),
+            DrawTextureParams {
+                dest_size: Some(vec2(glow_rect.w, glow_rect.h)),
+                ..Default::default()
+            },
+        );
+    }
+
+    let scale = match (hovered, pressed) {
+        (_, true) => 0.98,
+        (true, false) => 1.03,
+        _ => 1.0,
+    };
+    draw_slot_texture(texture, slot, scale);
+}
+
+

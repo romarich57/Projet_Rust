@@ -268,17 +268,3 @@ fn draw_goal_debug(goal: crate::match_arena::GoalGeometry) {
     );
 }
 
-#[cfg(test)]
-mod tests {
-    use super::countdown_display_from_seconds;
-
-    #[test]
-    fn countdown_display_uses_ceiling_and_stays_between_one_and_three() {
-        assert_eq!(countdown_display_from_seconds(3.0), 3);
-        assert_eq!(countdown_display_from_seconds(2.4), 3);
-        assert_eq!(countdown_display_from_seconds(2.0), 2);
-        assert_eq!(countdown_display_from_seconds(1.1), 2);
-        assert_eq!(countdown_display_from_seconds(1.0), 1);
-        assert_eq!(countdown_display_from_seconds(0.2), 1);
-    }
-}

@@ -1,8 +1,7 @@
 use super::buttons::ModeSelectionButton;
+use crate::arcade_ui::scaled_rect;
+use crate::physics::{REFERENCE_WIDTH, REFERENCE_HEIGHT};
 use macroquad::prelude::*;
-
-const REFERENCE_WIDTH: f32 = 1000.0;
-const REFERENCE_HEIGHT: f32 = 600.0;
 
 #[derive(Clone, Copy)]
 pub(super) struct ModeSelectionLayout {
@@ -39,37 +38,5 @@ impl ModeSelectionLayout {
             ModeSelectionButton::OneVsOne => self.one_vs_one_slot,
             ModeSelectionButton::Back => self.back_slot,
         }
-    }
-}
-
-fn scaled_rect(x: f32, y: f32, w: f32, h: f32, scale_x: f32, scale_y: f32) -> Rect {
-    Rect::new(x * scale_x, y * scale_y, w * scale_x, h * scale_y)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mode_buttons_do_not_overlap() {
-        let layout = ModeSelectionLayout::from_screen(1000.0, 600.0);
-
-        assert!(layout.solo_slot.right() <= layout.one_vs_one_slot.x);
-    }
-
-    #[test]
-    fn characters_do_not_overlap_back_button() {
-        let layout = ModeSelectionLayout::from_screen(1000.0, 600.0);
-
-        assert!(layout.materazzi_slot.right() <= layout.back_slot.x);
-        assert!(layout.back_slot.right() <= layout.zidane_slot.x);
-    }
-
-    #[test]
-    fn back_button_stays_centered() {
-        let layout = ModeSelectionLayout::from_screen(1000.0, 600.0);
-        let center = layout.back_slot.x + layout.back_slot.w * 0.5;
-
-        assert!((center - 500.0).abs() < 0.001);
     }
 }

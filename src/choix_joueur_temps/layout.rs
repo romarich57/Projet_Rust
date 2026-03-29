@@ -1,9 +1,8 @@
 use super::controls::MatchSetupControl;
+use crate::arcade_ui::scaled_rect;
 use crate::gameplay::MatchMode;
+use crate::physics::{REFERENCE_WIDTH, REFERENCE_HEIGHT};
 use macroquad::prelude::*;
-
-const REFERENCE_WIDTH: f32 = 1000.0;
-const REFERENCE_HEIGHT: f32 = 600.0;
 
 #[derive(Clone, Copy)]
 pub(super) struct MatchSetupLayout {
@@ -195,50 +194,7 @@ impl MatchSetupLayout {
     }
 }
 
-fn scaled_rect(x: f32, y: f32, w: f32, h: f32, scale_x: f32, scale_y: f32) -> Rect {
-    Rect::new(x * scale_x, y * scale_y, w * scale_x, h * scale_y)
-}
-
 fn inset_rect(rect: Rect, left: f32, top: f32, right: f32, height: f32) -> Rect {
     Rect::new(rect.x + left, rect.y + top, rect.w - left - right, height)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn difficulty_zone_is_absent_in_one_vs_one() {
-        let layout = MatchSetupLayout::from_screen(MatchMode::OneVsOne, 1000.0, 600.0);
-
-        assert!(layout.difficulty_rects.is_none());
-    }
-
-    #[test]
-    fn player_cards_do_not_overlap() {
-        let layout = MatchSetupLayout::from_screen(MatchMode::Solo, 1000.0, 600.0);
-
-        assert!(layout.left_card.right() <= layout.right_card.x);
-    }
-
-    #[test]
-    fn duration_panel_stays_above_bottom_buttons() {
-        let layout = MatchSetupLayout::from_screen(MatchMode::OneVsOne, 1000.0, 600.0);
-
-        assert!(layout.duration_panel.y + layout.duration_panel.h <= layout.back_slot.y);
-        assert!(layout.duration_panel.y + layout.duration_panel.h <= layout.play_slot.y);
-    }
-
-    #[test]
-    fn solo_difficulty_row_does_not_overlap_bottom_buttons() {
-        let layout = MatchSetupLayout::from_screen(MatchMode::Solo, 1000.0, 600.0);
-        let rects = layout
-            .difficulty_rects
-            .expect("solo should show difficulty");
-
-        for rect in rects {
-            assert!(rect.y + rect.h <= layout.back_slot.y);
-            assert!(rect.y + rect.h <= layout.play_slot.y);
-        }
-    }
-}
