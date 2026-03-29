@@ -64,8 +64,8 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
     ) =
         match difficulty {
             Difficulty::Easy => (7.5, 2.35, 2.5, 8.0, 0.48, -8.3, -9.0, 0.52, 0.80, -5.0, 0.45, 0.45, 0.20, 0.18, false, -8.0),
-            Difficulty::Normal => (11.0, 2.9, 3.35, 9.5, 0.57, -9.6, -10.7, 0.78, 0.92, -7.5, 0.38, 0.30, 0.35, 0.30, true, -8.8),
-            Difficulty::Hard => (12.0, 3.8, 4.5, 3.0, 0.80, -11.5, -13.0, 0.95, 1.10, -15.0, 0.30, 0.80, 0.30, 0.25, true, -10.5),
+            Difficulty::Normal => (11.0, 2.9, 3.35, 9.5, 0.50, -9.6, -10.7, 0.78, 0.92, -7.5, 0.38, 0.30, 0.35, 0.30, true, -8.8),
+            Difficulty::Hard => (12.0, 3.8, 4.5, 3.0, 0.62, -11.5, -13.0, 0.95, 1.10, -15.0, 0.30, 0.80, 0.30, 0.25, true, -10.5),
         };
 
     let predicted_ball_x = (ball.x + ball.vx * prediction_time).clamp(0.0, field_w); //clamp is used to ensure the predicted position doesn't go beyond the field boundaries
@@ -78,6 +78,19 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         predicted_ball_x > field_mid
     };
     let dangerous_ball = ball_toward_own_goal && ball_in_own_half; // Is the ball a threat to the player's own goal?
+    let own_goal = if is_left_side {
+        arena.left_goal
+    } else {
+        arena.right_goal
+    };
+
+    // If the ball is hovering/stuck above our own crossbar, stop forcing repeated head contacts.
+    let ball_over_own_goal_roof = (ball.x - own_goal.mouth_line_x).abs() < own_goal.draw_rect.w * 0.72
+        && ball.y < own_goal.crossbar_rect.y - ball.visual_radius() * 0.2
+        && ball.y > arena.hud_height + 6.0;
+    let bot_already_under_ball = (ball.x - player_center_x).abs() < player.collision_width() * 0.75;
+    let ball_is_slow = ball.vx.abs() < 1.3 && ball.vy.abs() < 2.4;
+    let wait_under_stuck_ball = ball_over_own_goal_roof && bot_already_under_ball && ball_is_slow;
 
     let home_x = if is_left_side {
         field_w * home_left_ratio
@@ -109,7 +122,9 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         arena.player_right_wall_x - player.collision_width(),
     );
 
-    let target_x = if dangerous_ball {
+    let target_x = if wait_under_stuck_ball {
+        player.x
+    } else if dangerous_ball {
         defend_x
     } else if ball_in_own_half {
         own_half_x
@@ -125,7 +140,9 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
     } else {
         move_speed_normal
     };
-    if dx.abs() > x_dead_zone {
+    if wait_under_stuck_ball {
+        player.vx = 0.0;
+    } else if dx.abs() > x_dead_zone {
         player.vx = dx.signum() * move_speed;
     } else {
         player.vx = 0.0;
@@ -136,8 +153,9 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
     // the AI will be more aggressive in jumping to intercept it, even if it's slightly above the player's head.
     let on_ground = player.y >= player.y_at_ground(arena.ground_y) - 2.0;
     let ball_reachable_x = (ball.x - player_center_x).abs() < player.collision_width() * jump_reach_factor;
-    let ball_descending_on_player = predicted_ball_y > player_head_y - player.head_height * 0.2
-        && predicted_ball_y < player_foot_y;
+    let ball_descending_on_player = ball.vy > 0.9
+        && predicted_ball_y > player_head_y - player.head_height * 0.35
+        && predicted_ball_y < player_head_y + player.head_height * 0.60;
     let lob_intercept_window = (ball.x - player_center_x).abs() < player.collision_width() * (jump_reach_factor + 0.2)
         && ball.vy > 0.35
         && predicted_ball_y < player_head_y - player.head_height * 0.25;
@@ -145,18 +163,20 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         && (ball_descending_on_player
             || lob_intercept_window
             || (dangerous_ball && ball.y < player_head_y + 25.0));
-    let air_double_jump_window = (ball.x - player_center_x).abs() < player.collision_width() * (jump_reach_factor + 0.35)
+    let air_double_jump_window = (ball.x - player_center_x).abs() < player.collision_width() * (jump_reach_factor + 0.25)
         && predicted_ball_y < player_head_y - player.head_height * 0.45
-        && (ball.vy > 0.2 || dangerous_ball);
+        && (ball.vy > 0.45 || dangerous_ball);
 
-    if on_ground && player.jump_count == 0 && jump_opportunity {
+    if !wait_under_stuck_ball && on_ground && player.jump_count == 0 && jump_opportunity {
         player.vy = if dangerous_ball { jump_danger } else { jump_normal };
         player.jump_count = 1;
-    } else if allow_air_double_jump
+    } else if !wait_under_stuck_ball
+        && allow_air_double_jump
         && !on_ground
         && player.jump_count == 1
         && (jump_opportunity || air_double_jump_window)
-        && player.vy > 2.0
+        && player.vy > 4.0
+        && ball.y < player_head_y - player.head_height * 0.1
     {
         player.vy = second_jump_velocity;
         player.jump_count = 2;
@@ -169,7 +189,7 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
     let ball_close_for_shot = (ball.x - player_center_x).abs() < player.collision_width() * shot_x_factor
         && (ball.y - player_foot_y).abs() < player.foot_height * shot_y_factor;
 
-    if ball_close_for_shot && ball_in_front {
+    if !wait_under_stuck_ball && ball_close_for_shot && ball_in_front {
         player.is_shooting = true;
     }
 }

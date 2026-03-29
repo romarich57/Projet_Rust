@@ -1,7 +1,25 @@
 {
-  "solo_bot_wins": 11,
-  "solo_bot_losses": 15,
+  "solo_bot_wins": 12,
+  "solo_bot_losses": 16,
   "matches": [
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774798190
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774797985
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774797681
+    },
     {
       "mode": "Solo",
       "left_score": 1,
@@ -103,24 +121,6 @@
       "left_score": 3,
       "right_score": 1,
       "recorded_at_unix_secs": 1774792024
-    },
-    {
-      "mode": "Solo",
-      "left_score": 2,
-      "right_score": 1,
-      "recorded_at_unix_secs": 1774791748
-    },
-    {
-      "mode": "Solo",
-      "left_score": 0,
-      "right_score": 1,
-      "recorded_at_unix_secs": 1774791673
-    },
-    {
-      "mode": "Solo",
-      "left_score": 2,
-      "right_score": 2,
-      "recorded_at_unix_secs": 1774791603
     }
   ]
 }
