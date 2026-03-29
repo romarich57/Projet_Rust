@@ -206,7 +206,10 @@ pub(crate) struct GameplaySession {
     pub(crate) match_config: MatchConfig,
     soccer_match: Match,
     result_recorded: bool,
+    finished_redirect_seconds: Option<f32>,
 }
+
+const MATCH_FINISHED_REDIRECT_DURATION: f32 = 3.0;
 
 impl GameplaySession {
     pub(crate) fn new_for_config(assets: &GameplayAssets, config: MatchConfig) -> Self {
@@ -243,6 +246,7 @@ impl GameplaySession {
             match_config: config,
             soccer_match: Match::new(config.length.seconds()),
             result_recorded: false,
+            finished_redirect_seconds: None,
         }
     }
 
@@ -281,17 +285,20 @@ impl GameplaySession {
             return SceneCommand::None;
         }
 
-        if let Some(command) = pending_match_result_command(
-            self.match_config,
-            &self.soccer_match,
-            self.result_recorded,
-        ) {
-            self.result_recorded = true;
-            return command;
-        }
-
         if matches!(self.soccer_match.state, GameState::Finished) {
-            return SceneCommand::None;
+            ensure_finished_redirect_started(&mut self.finished_redirect_seconds);
+
+            if let Some(command) = pending_match_result_command(
+                self.match_config,
+                &self.soccer_match,
+                self.result_recorded,
+            ) {
+                self.result_recorded = true;
+                return command;
+            }
+
+            return tick_finished_redirect(&mut self.finished_redirect_seconds, get_frame_time())
+                .unwrap_or(SceneCommand::None);
         }
 
         let _selected_difficulty = self.match_config.difficulty;
@@ -322,13 +329,17 @@ impl GameplaySession {
             get_frame_time(),
         );
 
-        if let Some(command) = pending_match_result_command(
-            self.match_config,
-            &self.soccer_match,
-            self.result_recorded,
-        ) {
-            self.result_recorded = true;
-            return command;
+        if matches!(self.soccer_match.state, GameState::Finished) {
+            ensure_finished_redirect_started(&mut self.finished_redirect_seconds);
+
+            if let Some(command) = pending_match_result_command(
+                self.match_config,
+                &self.soccer_match,
+                self.result_recorded,
+            ) {
+                self.result_recorded = true;
+                return command;
+            }
         }
 
         SceneCommand::None
@@ -343,6 +354,7 @@ impl GameplaySession {
             &self.ball,
             self.debug_hitbox,
             &self.soccer_match,
+            self.finished_redirect_seconds,
         );
 
         let (score_left, score_right) = self.soccer_match.score();
@@ -536,6 +548,26 @@ fn normalize_score(score: i32) -> u8 {
     score.clamp(0, u8::MAX as i32) as u8
 }
 
+fn ensure_finished_redirect_started(finished_redirect_seconds: &mut Option<f32>) {
+    if finished_redirect_seconds.is_none() {
+        *finished_redirect_seconds = Some(MATCH_FINISHED_REDIRECT_DURATION);
+    }
+}
+
+fn tick_finished_redirect(
+    finished_redirect_seconds: &mut Option<f32>,
+    delta_seconds: f32,
+) -> Option<SceneCommand> {
+    let remaining = finished_redirect_seconds.as_mut()?;
+    *remaining = (*remaining - delta_seconds).max(0.0);
+
+    if *remaining <= 0.0 {
+        Some(SceneCommand::BackToMenu)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -588,5 +620,28 @@ mod tests {
             pending_match_result_command(config, &soccer_match, true),
             None
         );
+    }
+
+    #[test]
+    fn finished_redirect_timer_starts_once() {
+        let mut timer = None;
+
+        ensure_finished_redirect_started(&mut timer);
+        ensure_finished_redirect_started(&mut timer);
+
+        assert_eq!(timer, Some(MATCH_FINISHED_REDIRECT_DURATION));
+    }
+
+    #[test]
+    fn finished_redirect_waits_until_zero_before_back_to_menu() {
+        let mut timer = Some(1.5);
+
+        assert_eq!(tick_finished_redirect(&mut timer, 1.0), None);
+        assert_eq!(timer, Some(0.5));
+        assert_eq!(
+            tick_finished_redirect(&mut timer, 0.5),
+            Some(SceneCommand::BackToMenu)
+        );
+        assert_eq!(timer, Some(0.0));
     }
 }

@@ -3,6 +3,11 @@ use macroquad::prelude::*;
 
 const REFERENCE_WIDTH: f32 = 1000.0;
 const REFERENCE_HEIGHT: f32 = 600.0;
+const HUD_BAR_INNER_PADDING_X: f32 = 16.0;
+const HUD_BUTTON_SIZE: f32 = 48.0;
+const HUD_BUTTON_GAP: f32 = 10.0;
+const HUD_STATE_GAP: f32 = 14.0;
+const HUD_STATE_LEFT_MARGIN: f32 = 18.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HudAction {
@@ -66,44 +71,60 @@ impl HudLayout {
     pub(crate) fn from_screen(screen_width: f32, screen_height: f32) -> Self {
         let scale_x = screen_width / REFERENCE_WIDTH;
         let scale_y = screen_height / REFERENCE_HEIGHT;
+        let bar_rect = Rect::new(
+            140.0 * scale_x,
+            12.0 * scale_y,
+            720.0 * scale_x,
+            78.0 * scale_y,
+        );
+        let timer_rect = Rect::new(
+            172.0 * scale_x,
+            20.0 * scale_y,
+            150.0 * scale_x,
+            58.0 * scale_y,
+        );
+        let score_rect = Rect::new(
+            356.0 * scale_x,
+            14.0 * scale_y,
+            286.0 * scale_x,
+            62.0 * scale_y,
+        );
+
+        let button_size = HUD_BUTTON_SIZE * scale_y;
+        let inner_padding_x = HUD_BAR_INNER_PADDING_X * scale_x;
+        let button_gap = HUD_BUTTON_GAP * scale_x;
+        let state_gap = HUD_STATE_GAP * scale_x;
+
+        let pause_button_rect = Rect::new(
+            bar_rect.right() - inner_padding_x - button_size,
+            bar_rect.y + (bar_rect.h - button_size) * 0.5,
+            button_size,
+            button_size,
+        );
+        let quit_button_rect = Rect::new(
+            pause_button_rect.x - button_gap - button_size,
+            pause_button_rect.y,
+            button_size,
+            button_size,
+        );
+
+        let state_rect_x = score_rect.right() + HUD_STATE_LEFT_MARGIN * scale_x;
+        let state_rect_right = quit_button_rect.x - state_gap;
+        let state_rect_width = (state_rect_right - state_rect_x).max(0.0);
+        let state_rect = Rect::new(
+            state_rect_x,
+            bar_rect.y + 20.0 * scale_y,
+            state_rect_width,
+            52.0 * scale_y,
+        );
 
         Self {
-            bar_rect: Rect::new(
-                140.0 * scale_x,
-                12.0 * scale_y,
-                720.0 * scale_x,
-                78.0 * scale_y,
-            ),
-            timer_rect: Rect::new(
-                172.0 * scale_x,
-                20.0 * scale_y,
-                150.0 * scale_x,
-                58.0 * scale_y,
-            ),
-            score_rect: Rect::new(
-                356.0 * scale_x,
-                14.0 * scale_y,
-                286.0 * scale_x,
-                62.0 * scale_y,
-            ),
-            state_rect: Rect::new(
-                648.0 * scale_x,
-                20.0 * scale_y,
-                120.0 * scale_x,
-                52.0 * scale_y,
-            ),
-            quit_button_rect: Rect::new(
-                776.0 * scale_x,
-                17.0 * scale_y,
-                54.0 * scale_x,
-                54.0 * scale_y,
-            ),
-            pause_button_rect: Rect::new(
-                836.0 * scale_x,
-                17.0 * scale_y,
-                54.0 * scale_x,
-                54.0 * scale_y,
-            ),
+            bar_rect,
+            timer_rect,
+            score_rect,
+            state_rect,
+            quit_button_rect,
+            pause_button_rect,
             popup_rect: Rect::new(
                 325.0 * scale_x,
                 175.0 * scale_y,
@@ -126,6 +147,10 @@ impl HudLayout {
     }
 
     fn button_at(self, mouse: Vec2, visual_state: HudVisualState) -> Option<HudButton> {
+        if visual_state == HudVisualState::Finished {
+            return None;
+        }
+
         if visual_state == HudVisualState::ConfirmQuit {
             if self.popup_cancel_rect.contains(mouse) {
                 return Some(HudButton::CancelQuit);
@@ -366,4 +391,49 @@ fn draw_centered_text(text: &str, center: Vec2, font_size: f32, color: Color) {
         font_size,
         color,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rect_contains_rect(outer: Rect, inner: Rect) -> bool {
+        inner.x >= outer.x
+            && inner.y >= outer.y
+            && inner.right() <= outer.right()
+            && inner.bottom() <= outer.bottom()
+    }
+
+    #[test]
+    fn hud_buttons_stay_inside_bar() {
+        let layout = HudLayout::from_screen(1000.0, 600.0);
+
+        assert!(rect_contains_rect(layout.bar_rect, layout.quit_button_rect));
+        assert!(rect_contains_rect(layout.bar_rect, layout.pause_button_rect));
+    }
+
+    #[test]
+    fn quit_button_stays_left_of_pause_button() {
+        let layout = HudLayout::from_screen(1000.0, 600.0);
+
+        assert!(layout.quit_button_rect.right() < layout.pause_button_rect.x);
+    }
+
+    #[test]
+    fn state_rect_stays_before_quit_button_gap() {
+        let layout = HudLayout::from_screen(1000.0, 600.0);
+
+        assert!(layout.state_rect.right() <= layout.quit_button_rect.x - HUD_STATE_GAP);
+    }
+
+    #[test]
+    fn hud_buttons_are_disabled_when_match_is_finished() {
+        let layout = HudLayout::from_screen(1000.0, 600.0);
+        let pause_center = layout.pause_button_rect.center();
+
+        assert_eq!(
+            layout.button_at(pause_center, HudVisualState::Finished),
+            None
+        );
+    }
 }

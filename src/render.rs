@@ -13,6 +13,7 @@ pub fn draw_all(
     ball: &Ball,
     debug_hitbox: bool,
     game_match: &Match,
+    finished_redirect_seconds: Option<f32>,
 ) {
     draw_cover_texture(
         terrain_texture,
@@ -38,7 +39,7 @@ pub fn draw_all(
         draw_player(player);
     }
 
-    draw_state_overlay(game_match);
+    draw_state_overlay(game_match, finished_redirect_seconds);
 
     if debug_hitbox {
         draw_goal_debug(arena.left_goal);
@@ -94,7 +95,7 @@ fn draw_player(player: &Player) {
     );
 }
 
-fn draw_state_overlay(game_match: &Match) {
+fn draw_state_overlay(game_match: &Match, finished_redirect_seconds: Option<f32>) {
     match game_match.state {
         GameState::GoalScored { .. } => {
             let goal_text = "GOAL !";
@@ -121,16 +122,25 @@ fn draw_state_overlay(game_match: &Match) {
                 "Score final: {} - {}",
                 game_match.score_p1, game_match.score_p2
             );
+            let countdown_value = finished_redirect_seconds.map(countdown_display_from_seconds);
+            let redirect_text = finished_redirect_seconds
+                .map(|seconds| format!("Redirection vers le menu dans {}...", countdown_display_from_seconds(seconds)));
             let title_size = 84.0;
             let subtitle_size = 34.0;
+            let countdown_size = 96.0;
+            let redirect_size = 28.0;
 
             let title_metrics = measure_text(title, None, title_size as u16, 1.0);
             let subtitle_metrics = measure_text(&subtitle, None, subtitle_size as u16, 1.0);
+            let redirect_metrics = redirect_text
+                .as_ref()
+                .map(|text| measure_text(text, None, redirect_size as u16, 1.0));
 
             let title_x = screen_width() * 0.5 - title_metrics.width * 0.5;
-            let title_y = screen_height() * 0.5 - 10.0;
+            let title_y = screen_height() * 0.5 - 38.0;
             let subtitle_x = screen_width() * 0.5 - subtitle_metrics.width * 0.5;
             let subtitle_y = title_y + 54.0;
+            let countdown_y = subtitle_y + 80.0;
 
             draw_text(title, title_x + 5.0, title_y + 5.0, title_size, BLACK);
             draw_text(
@@ -148,9 +158,48 @@ fn draw_state_overlay(game_match: &Match) {
                 BLACK,
             );
             draw_text(&subtitle, subtitle_x, subtitle_y, subtitle_size, WHITE);
+
+            if let Some(countdown) = countdown_value {
+                let countdown_text = countdown.to_string();
+                let countdown_metrics =
+                    measure_text(&countdown_text, None, countdown_size as u16, 1.0);
+                let countdown_x = screen_width() * 0.5 - countdown_metrics.width * 0.5;
+
+                draw_text(
+                    &countdown_text,
+                    countdown_x + 4.0,
+                    countdown_y + 4.0,
+                    countdown_size,
+                    BLACK,
+                );
+                draw_text(
+                    &countdown_text,
+                    countdown_x,
+                    countdown_y,
+                    countdown_size,
+                    color_u8!(255, 221, 109, 255),
+                );
+            }
+
+            if let (Some(text), Some(metrics)) = (redirect_text, redirect_metrics) {
+                let redirect_x = screen_width() * 0.5 - metrics.width * 0.5;
+                let redirect_y = countdown_y + 48.0;
+                draw_text(&text, redirect_x + 2.0, redirect_y + 2.0, redirect_size, BLACK);
+                draw_text(
+                    &text,
+                    redirect_x,
+                    redirect_y,
+                    redirect_size,
+                    color_u8!(255, 239, 184, 255),
+                );
+            }
         }
         GameState::Playing => {}
     }
+}
+
+fn countdown_display_from_seconds(seconds: f32) -> i32 {
+    seconds.ceil().clamp(1.0, 3.0) as i32
 }
 
 fn draw_debug_hitbox(player: &Player, ball: &Ball) {
@@ -207,4 +256,19 @@ fn draw_goal_debug(goal: crate::match_arena::GoalGeometry) {
         2.0,
         YELLOW,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::countdown_display_from_seconds;
+
+    #[test]
+    fn countdown_display_uses_ceiling_and_stays_between_one_and_three() {
+        assert_eq!(countdown_display_from_seconds(3.0), 3);
+        assert_eq!(countdown_display_from_seconds(2.4), 3);
+        assert_eq!(countdown_display_from_seconds(2.0), 2);
+        assert_eq!(countdown_display_from_seconds(1.1), 2);
+        assert_eq!(countdown_display_from_seconds(1.0), 1);
+        assert_eq!(countdown_display_from_seconds(0.2), 1);
+    }
 }
