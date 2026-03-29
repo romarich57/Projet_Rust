@@ -1,7 +1,5 @@
+use crate::physics::{REFERENCE_WIDTH, REFERENCE_HEIGHT};
 use macroquad::prelude::*;
-
-const REFERENCE_WIDTH: f32 = 1000.0;
-const REFERENCE_HEIGHT: f32 = 600.0;
 const MAX_VISIBLE_ROWS: usize = 5;
 
 #[derive(Clone, Copy)]

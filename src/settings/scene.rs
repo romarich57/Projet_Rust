@@ -1,5 +1,6 @@
 use crate::app::SceneCommand;
-use crate::arcade_ui::{draw_cover_texture, draw_slot_texture};
+use crate::arcade_ui::{draw_cover_texture, draw_panel, draw_shadowed_centered_text, draw_slot_texture};
+use crate::physics::scale_y;
 use crate::settings::assets::SettingsAssets;
 use crate::settings::data::{
     keycode_to_display_label, BindingAction, BindingTarget, ControlProfile, SettingsData,
@@ -8,8 +9,7 @@ use crate::settings::data::{
 use crate::settings::layout::{BindingRowLayout, SettingsLayout};
 use macroquad::prelude::*;
 
-const PANEL_FILL: Color = Color::new(0.03, 0.09, 0.17, 0.8);
-const PANEL_BORDER: Color = Color::new(0.31, 0.82, 1.0, 0.92);
+const SETTINGS_PANEL_BORDER: Color = Color::new(0.31, 0.82, 1.0, 0.92);
 const PANEL_LINE: Color = Color::new(0.42, 0.76, 1.0, 0.22);
 const LABEL_COLOR: Color = Color::new(0.96, 0.88, 0.45, 0.98);
 const TEXT_COLOR: Color = Color::new(0.88, 0.94, 1.0, 0.98);
@@ -172,7 +172,7 @@ impl SettingsScene {
             "TOUCHES",
             self.layout.subtitle_pos.x,
             self.layout.subtitle_pos.y,
-            26.0 * vertical_scale(),
+            26.0 * scale_y(),
             color_u8!(255, 230, 128, 255),
         );
 
@@ -372,7 +372,7 @@ impl SettingsScene {
     }
 
     fn draw_rows(&self) {
-        let solo_scale = vertical_scale();
+        let solo_scale = scale_y();
         self.draw_profile_rows(
             ControlProfile::Solo,
             &self.layout.solo_rows,
@@ -453,7 +453,7 @@ impl SettingsScene {
                 &feedback.text,
                 self.layout.feedback_rect.center().x,
                 self.layout.feedback_rect.y + self.layout.feedback_rect.h,
-                22.0 * vertical_scale(),
+                22.0 * scale_y(),
                 feedback.color,
             );
         } else if self.pending_rebind.is_some() {
@@ -461,7 +461,7 @@ impl SettingsScene {
                 "Appuyez sur une touche...",
                 self.layout.feedback_rect.center().x,
                 self.layout.feedback_rect.y + self.layout.feedback_rect.h,
-                22.0 * vertical_scale(),
+                22.0 * scale_y(),
                 color_u8!(255, 230, 132, 255),
             );
         }
@@ -504,15 +504,15 @@ impl SettingsScene {
         draw_shadowed_centered_text(
             "Quitter sans sauvegarder ?",
             self.layout.confirm_popup_rect.center().x,
-            self.layout.confirm_popup_rect.y + 52.0 * vertical_scale(),
-            32.0 * vertical_scale(),
+            self.layout.confirm_popup_rect.y + 52.0 * scale_y(),
+            32.0 * scale_y(),
             TEXT_COLOR,
         );
         draw_shadowed_centered_text(
             "Les changements non sauvegardes seront perdus.",
             self.layout.confirm_popup_rect.center().x,
-            self.layout.confirm_popup_rect.y + 88.0 * vertical_scale(),
-            20.0 * vertical_scale(),
+            self.layout.confirm_popup_rect.y + 88.0 * scale_y(),
+            20.0 * scale_y(),
             color_u8!(228, 237, 248, 255),
         );
 
@@ -580,18 +580,6 @@ fn validation_error_message(error: SettingsValidationError) -> &'static str {
             "Cette touche est deja utilisee par l'autre joueur"
         }
     }
-}
-
-fn draw_panel(rect: Rect) {
-    draw_rectangle(
-        rect.x + 6.0,
-        rect.y + 8.0,
-        rect.w,
-        rect.h,
-        Color::new(0.0, 0.0, 0.0, 0.28),
-    );
-    draw_rectangle(rect.x, rect.y, rect.w, rect.h, PANEL_FILL);
-    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 3.0, PANEL_BORDER);
 }
 
 fn draw_binding_cell(rect: Rect, label: &str, font_size: f32, hovered: bool, active: bool) {
@@ -772,7 +760,7 @@ fn draw_text_button(rect: Rect, label: &str, hovered: bool, pressed: bool, fill:
     let stroke = if hovered {
         color_u8!(255, 230, 128, 255)
     } else {
-        PANEL_BORDER
+        SETTINGS_PANEL_BORDER
     };
     let y_offset = if pressed { 2.0 } else { 0.0 };
 
@@ -782,30 +770,8 @@ fn draw_text_button(rect: Rect, label: &str, hovered: bool, pressed: bool, fill:
         label,
         rect.center().x,
         rect.y + y_offset + rect.h * 0.68,
-        22.0 * vertical_scale(),
+        22.0 * scale_y(),
         TEXT_COLOR,
     );
 }
 
-fn draw_shadowed_centered_text(
-    text: &str,
-    center_x: f32,
-    baseline_y: f32,
-    font_size: f32,
-    color: Color,
-) {
-    let metrics = measure_text(text, None, font_size as u16, 1.0);
-    let draw_x = center_x - metrics.width * 0.5;
-    draw_text(
-        text,
-        draw_x + 2.0,
-        baseline_y + 2.0,
-        font_size,
-        Color::new(0.02, 0.04, 0.08, 0.86),
-    );
-    draw_text(text, draw_x, baseline_y, font_size, color);
-}
-
-fn vertical_scale() -> f32 {
-    screen_height() / 600.0
-}

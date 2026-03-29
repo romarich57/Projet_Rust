@@ -1,6 +1,5 @@
 mod assets;
 mod buttons;
-mod draw;
 mod layout;
 mod scene;
 

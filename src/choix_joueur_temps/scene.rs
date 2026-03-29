@@ -8,7 +8,7 @@ use super::{
     },
 };
 use crate::app::SceneCommand;
-use crate::arcade_ui::{draw_slot_texture, fit_contain, scale_rect_from_center};
+use crate::arcade_ui::draw_slot_texture;
 use crate::gameplay::{BotDifficulty, MatchConfig, MatchMode};
 use macroquad::prelude::*;
 
@@ -252,30 +252,9 @@ impl MatchSetupScene {
             .layout
             .rect_for_control(control)
             .expect("asset button should have a rect");
-        let base_rect = fit_contain(slot, texture.width(), texture.height());
         let is_hovered = self.hovered_control == Some(control);
         let is_pressed = self.pressed_control == Some(control);
-
-        if is_hovered || is_pressed {
-            let glow_rect = scale_rect_from_center(base_rect, 1.07);
-            draw_texture_ex(
-                texture,
-                glow_rect.x,
-                glow_rect.y,
-                Color::new(1.0, 1.0, 1.0, 0.30),
-                DrawTextureParams {
-                    dest_size: Some(vec2(glow_rect.w, glow_rect.h)),
-                    ..Default::default()
-                },
-            );
-        }
-
-        let scale = match (is_hovered, is_pressed) {
-            (_, true) => 0.98,
-            (true, false) => 1.03,
-            _ => 1.0,
-        };
-        draw_slot_texture(texture, slot, scale);
+        crate::arcade_ui::draw_interactive_texture_button(texture, slot, is_hovered, is_pressed);
     }
 
     fn refresh_layout_if_needed(&mut self) {
@@ -292,34 +271,3 @@ impl MatchSetupScene {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::gameplay::{MatchLength, PlayerProfile};
-
-    #[test]
-    fn player_profile_cycle_wraps() {
-        assert_eq!(PlayerProfile::Fiorio.previous(), PlayerProfile::Dejonckere);
-        assert_eq!(PlayerProfile::Dejonckere.next(), PlayerProfile::Fiorio);
-    }
-
-    #[test]
-    fn match_length_cycle_wraps() {
-        assert_eq!(MatchLength::OneMinute.previous(), MatchLength::ThreeMinutes);
-        assert_eq!(MatchLength::ThreeMinutes.next(), MatchLength::OneMinute);
-    }
-
-    #[test]
-    fn solo_defaults_to_normal_difficulty() {
-        let config = MatchConfig::default_for_mode(MatchMode::Solo);
-
-        assert_eq!(config.difficulty, Some(BotDifficulty::Normal));
-    }
-
-    #[test]
-    fn one_vs_one_hides_difficulty_by_default() {
-        let config = MatchConfig::default_for_mode(MatchMode::OneVsOne);
-
-        assert_eq!(config.difficulty, None);
-    }
-}

@@ -4,6 +4,18 @@
   "matches": [
     {
       "mode": "Solo",
+      "left_score": 0,
+      "right_score": 6,
+      "recorded_at_unix_secs": 1774792722
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 6,
+      "recorded_at_unix_secs": 1774792582
+    },
+    {
+      "mode": "Solo",
       "left_score": 2,
       "right_score": 3,
       "recorded_at_unix_secs": 1774790756
