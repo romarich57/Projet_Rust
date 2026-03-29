@@ -19,7 +19,7 @@ pub fn handle_keyboard(player: &mut Player, bindings: &PlayerBindings) {
 
     // Jump
     if is_key_pressed(bindings.jump) && player.jump_count < 2 {
-        player.vy = if player.jump_count == 0 { -14.0 } else { -11.0 };
+        player.vy = if player.jump_count == 0 { -12.0 } else { -9.0 };
         player.jump_count += 1;
     }
 

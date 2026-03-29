@@ -37,8 +37,8 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         } else {
             let force = 4.0;
 
-            ball.vx += nx * force + player.vx * 0.5;
-            ball.vy += ny * force + player.vy * 0.15;
+            ball.vx += nx * force + player.vx * 0.8;
+            ball.vy += ny * force + player.vy * 0.4;
 
             ball.vy -= 1.5;
         }
@@ -174,8 +174,18 @@ fn limit_ball_speed(ball: &mut Ball, vmax: f32) {
 }
 
 pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
-    // Prevent players from walking through each other
-    let hw1 = p1.collision_width() / 3.0; // Use a fraction of the collision width for more forgiving collisions
+
+    let top1 = p1.head_hitbox_rect().1;
+    let bottom1 = p1.foot_hitbox_rect().1 + p1.foot_hitbox_rect().3;
+
+    let top2 = p2.head_hitbox_rect().1;
+    let bottom2 = p2.foot_hitbox_rect().1 + p2.foot_hitbox_rect().3;
+
+    // Only apply horizontal collision if players are roughly at the same vertical level.
+    if bottom1 < top2 + 15.0 || bottom2 < top1 + 15.0 {
+        return; 
+    }
+    let hw1 = p1.collision_width() / 3.0;
     let hw2 = p2.collision_width() / 3.0;
 
     let c1 = p1.x + hw1;
@@ -198,7 +208,6 @@ pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
             p2.x -= push;
         }
 
-        // Dampen relative horizontal velocity slightly to avoid sliding effects
         let avg_vx = (p1.vx + p2.vx) * 0.5;
         p1.vx = avg_vx;
         p2.vx = avg_vx;
