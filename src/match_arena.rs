@@ -6,10 +6,11 @@ const REFERENCE_HEIGHT: f32 = 600.0;
 
 const GOAL_POST_WIDTH_RATIO: f32 = 6.0 / 80.0;
 const GOAL_BACK_POST_X_RATIO: f32 = 4.5 / 80.0;
-const GOAL_FRONT_POST_X_RATIO: f32 = 69.5 / 80.0;
+const GOAL_FIELD_POST_X_RATIO: f32 = 69.5 / 80.0;
 const GOAL_CROSSBAR_TOP_RATIO: f32 = 4.5 / 120.0;
 const GOAL_OPENING_TOP_RATIO: f32 = 10.0 / 120.0;
 const GOAL_OPENING_BOTTOM_RATIO: f32 = 111.0 / 120.0;
+const GOAL_FIELD_POST_TIP_HEIGHT_RATIO: f32 = 0.15;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GoalSide {
@@ -26,7 +27,6 @@ pub(crate) struct ArenaTuning {
     pub(crate) left_spawn_center_x: f32,
     pub(crate) right_spawn_center_x: f32,
     pub(crate) ball_spawn_center_x: f32,
-    pub(crate) goal_draw_y: f32,
     pub(crate) goal_draw_width: f32,
     pub(crate) goal_draw_height: f32,
     pub(crate) goal_net_padding: f32,
@@ -36,13 +36,12 @@ impl ArenaTuning {
     pub(crate) fn reference() -> Self {
         Self {
             hud_height: 92.0,
-            ground_y: 522.0,
+            ground_y: 497.0,
             player_left_wall_x: 82.0,
             player_right_wall_x: 918.0,
             left_spawn_center_x: 280.0,
             right_spawn_center_x: 720.0,
             ball_spawn_center_x: 500.0,
-            goal_draw_y: 355.0,
             goal_draw_width: 128.0,
             goal_draw_height: 192.0,
             goal_net_padding: 10.0,
@@ -54,13 +53,15 @@ impl ArenaTuning {
 pub(crate) struct GoalGeometry {
     pub(crate) side: GoalSide,
     pub(crate) draw_rect: Rect,
-    pub(crate) goal_line_x: f32,
+    pub(crate) mouth_line_x: f32,
     pub(crate) opening_top_y: f32,
     pub(crate) opening_bottom_y: f32,
-    pub(crate) front_post_rect: Rect,
+    pub(crate) field_post_tip_rect: Rect,
     pub(crate) back_post_rect: Rect,
     pub(crate) crossbar_rect: Rect,
-    pub(crate) net_zone_rect: Rect,
+    pub(crate) goal_floor_rect: Rect,
+    pub(crate) goal_cavity_rect: Rect,
+    pub(crate) goal_capture_rect: Rect,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -85,10 +86,11 @@ impl ArenaGeometry {
         let scale_x = screen_width / REFERENCE_WIDTH;
         let scale_y = screen_height / REFERENCE_HEIGHT;
         let uniform_scale = scale_x.min(scale_y);
+        let ground_y = tuning.ground_y * scale_y;
 
         let goal_draw_width = tuning.goal_draw_width * uniform_scale;
         let goal_draw_height = tuning.goal_draw_height * uniform_scale;
-        let goal_draw_y = tuning.goal_draw_y * scale_y;
+        let goal_draw_y = ground_y - goal_draw_height * 0.935;
 
         let left_goal_rect = Rect::new(0.0, goal_draw_y, goal_draw_width, goal_draw_height);
         let right_goal_rect = Rect::new(
@@ -103,7 +105,7 @@ impl ArenaGeometry {
             screen_height,
             uniform_scale,
             hud_height: tuning.hud_height * scale_y,
-            ground_y: tuning.ground_y * scale_y,
+            ground_y,
             player_left_wall_x: tuning.player_left_wall_x * scale_x,
             player_right_wall_x: tuning.player_right_wall_x * scale_x,
             left_spawn_center_x: tuning.left_spawn_center_x * scale_x,
@@ -128,73 +130,82 @@ impl ArenaGeometry {
             draw_rect.h * GOAL_OPENING_TOP_RATIO - draw_rect.h * GOAL_CROSSBAR_TOP_RATIO;
         let opening_top_y = draw_rect.y + draw_rect.h * GOAL_OPENING_TOP_RATIO;
         let opening_bottom_y = draw_rect.y + draw_rect.h * GOAL_OPENING_BOTTOM_RATIO;
+        let post_top_y = draw_rect.y + draw_rect.h * GOAL_CROSSBAR_TOP_RATIO;
 
         let back_post_x = match side {
             GoalSide::Left => draw_rect.x + draw_rect.w * GOAL_BACK_POST_X_RATIO,
-            GoalSide::Right => {
-                draw_rect.x + draw_rect.w * (1.0 - GOAL_FRONT_POST_X_RATIO) - post_width
-            }
+            GoalSide::Right => draw_rect.x + draw_rect.w * GOAL_FIELD_POST_X_RATIO,
         };
-        let front_post_x = match side {
-            GoalSide::Left => draw_rect.x + draw_rect.w * GOAL_FRONT_POST_X_RATIO,
-            GoalSide::Right => {
-                draw_rect.x + draw_rect.w * (1.0 - GOAL_BACK_POST_X_RATIO) - post_width
-            }
+        let field_post_x = match side {
+            GoalSide::Left => draw_rect.x + draw_rect.w * GOAL_FIELD_POST_X_RATIO,
+            GoalSide::Right => draw_rect.x + draw_rect.w * GOAL_BACK_POST_X_RATIO,
         };
 
-        let front_post_rect = Rect::new(
-            front_post_x,
-            draw_rect.y + draw_rect.h * GOAL_CROSSBAR_TOP_RATIO,
+        let field_post_tip_rect = Rect::new(
+            field_post_x,
+            post_top_y,
             post_width,
-            opening_bottom_y - draw_rect.y,
+            (opening_bottom_y - opening_top_y) * GOAL_FIELD_POST_TIP_HEIGHT_RATIO,
         );
         let back_post_rect = Rect::new(
             back_post_x,
-            draw_rect.y + draw_rect.h * GOAL_CROSSBAR_TOP_RATIO,
+            post_top_y,
             post_width,
             opening_bottom_y - draw_rect.y,
         );
 
-        let crossbar_x = back_post_rect.x.min(front_post_rect.x);
-        let crossbar_right =
-            (back_post_rect.x + back_post_rect.w).max(front_post_rect.x + front_post_rect.w);
+        let crossbar_x = back_post_rect.x.min(field_post_tip_rect.x);
+        let crossbar_right = (back_post_rect.x + back_post_rect.w)
+            .max(field_post_tip_rect.x + field_post_tip_rect.w);
         let crossbar_rect = Rect::new(
             crossbar_x,
-            draw_rect.y + draw_rect.h * GOAL_CROSSBAR_TOP_RATIO,
+            post_top_y,
             crossbar_right - crossbar_x,
             crossbar_height.max(4.0),
         );
 
-        let goal_line_x = match side {
-            GoalSide::Left => front_post_rect.x + front_post_rect.w * 0.5,
-            GoalSide::Right => front_post_rect.x + front_post_rect.w * 0.5,
-        };
+        let mouth_line_x = field_post_tip_rect.x + field_post_tip_rect.w * 0.5;
 
-        let net_zone_rect = match side {
+        let goal_cavity_rect = match side {
             GoalSide::Left => Rect::new(
                 draw_rect.x + net_padding,
                 opening_top_y + net_padding,
-                (goal_line_x - draw_rect.x - net_padding).max(1.0),
+                (mouth_line_x - draw_rect.x - net_padding).max(1.0),
                 (opening_bottom_y - opening_top_y - net_padding * 2.0).max(1.0),
             ),
             GoalSide::Right => Rect::new(
-                goal_line_x,
+                mouth_line_x,
                 opening_top_y + net_padding,
-                (draw_rect.right() - goal_line_x - net_padding).max(1.0),
+                (draw_rect.right() - mouth_line_x - net_padding).max(1.0),
                 (opening_bottom_y - opening_top_y - net_padding * 2.0).max(1.0),
             ),
         };
+        let capture_inset = (net_padding * 0.6).max(4.0);
+        let goal_capture_rect = Rect::new(
+            goal_cavity_rect.x + capture_inset,
+            goal_cavity_rect.y + capture_inset,
+            (goal_cavity_rect.w - capture_inset * 2.0).max(1.0),
+            (goal_cavity_rect.h - capture_inset * 2.0).max(1.0),
+        );
+        let goal_floor_rect = Rect::new(
+            goal_cavity_rect.x,
+            opening_bottom_y,
+            goal_cavity_rect.w,
+            (draw_rect.bottom() - opening_bottom_y).max(2.0),
+        );
 
         GoalGeometry {
             side,
             draw_rect,
-            goal_line_x,
+            mouth_line_x,
             opening_top_y,
             opening_bottom_y,
-            front_post_rect,
+            field_post_tip_rect,
             back_post_rect,
             crossbar_rect,
-            net_zone_rect,
+            goal_floor_rect,
+            goal_cavity_rect,
+            goal_capture_rect,
         }
     }
 
@@ -221,11 +232,11 @@ impl ArenaGeometry {
     }
 
     pub(crate) fn goal_scored_at(&self, center: Vec2, radius: f32) -> Option<GoalSide> {
-        if Self::is_ball_past_goal_line(center, radius, self.left_goal) {
+        if Self::is_ball_captured_in_goal(center, radius, self.left_goal) {
             return Some(GoalSide::Left);
         }
 
-        if Self::is_ball_past_goal_line(center, radius, self.right_goal) {
+        if Self::is_ball_captured_in_goal(center, radius, self.right_goal) {
             return Some(GoalSide::Right);
         }
 
@@ -236,18 +247,26 @@ impl ArenaGeometry {
         let (center_x, center_y, radius) = ball.circle_hitbox();
         let center = vec2(center_x, center_y);
 
-        if rect_circle_overlap(self.left_goal.net_zone_rect, center, radius) {
+        if rect_circle_overlap(self.left_goal.goal_cavity_rect, center, radius) {
             return Some(GoalSide::Left);
         }
 
-        if rect_circle_overlap(self.right_goal.net_zone_rect, center, radius) {
+        if rect_circle_overlap(self.right_goal.goal_cavity_rect, center, radius) {
             return Some(GoalSide::Right);
         }
 
         None
     }
 
-    fn is_ball_past_goal_line(center: Vec2, radius: f32, goal: GoalGeometry) -> bool {
+    fn is_ball_captured_in_goal(center: Vec2, radius: f32, goal: GoalGeometry) -> bool {
+        if !Self::has_crossed_goal_mouth(center, radius, goal) {
+            return false;
+        }
+
+        rect_contains_point(goal.goal_capture_rect, center)
+    }
+
+    fn has_crossed_goal_mouth(center: Vec2, radius: f32, goal: GoalGeometry) -> bool {
         let within_opening = center.y > goal.opening_top_y + radius * 0.2
             && center.y < goal.opening_bottom_y - radius * 0.15;
 
@@ -256,8 +275,8 @@ impl ArenaGeometry {
         }
 
         match goal.side {
-            GoalSide::Left => center.x < goal.goal_line_x - radius * 0.35,
-            GoalSide::Right => center.x > goal.goal_line_x + radius * 0.35,
+            GoalSide::Left => center.x < goal.mouth_line_x - radius * 0.2,
+            GoalSide::Right => center.x > goal.mouth_line_x + radius * 0.2,
         }
     }
 }
@@ -269,6 +288,10 @@ fn rect_circle_overlap(rect: Rect, center: Vec2, radius: f32) -> bool {
     let dy = center.y - closest_y;
 
     dx * dx + dy * dy <= radius * radius
+}
+
+fn rect_contains_point(rect: Rect, point: Vec2) -> bool {
+    point.x >= rect.x && point.x <= rect.right() && point.y >= rect.y && point.y <= rect.bottom()
 }
 
 #[cfg(test)]
@@ -305,7 +328,7 @@ mod tests {
     fn goal_is_scored_only_inside_opening() {
         let arena = ArenaGeometry::from_screen(1000.0, 600.0);
         let center = vec2(
-            arena.left_goal.goal_line_x - 20.0,
+            arena.left_goal.mouth_line_x - 24.0,
             (arena.left_goal.opening_top_y + arena.left_goal.opening_bottom_y) * 0.5,
         );
 
@@ -316,7 +339,7 @@ mod tests {
     fn goal_is_not_scored_above_crossbar() {
         let arena = ArenaGeometry::from_screen(1000.0, 600.0);
         let center = vec2(
-            arena.left_goal.goal_line_x - 20.0,
+            arena.left_goal.mouth_line_x - 24.0,
             arena.left_goal.opening_top_y - 18.0,
         );
 
@@ -327,10 +350,47 @@ mod tests {
     fn touching_post_only_is_not_a_goal() {
         let arena = ArenaGeometry::from_screen(1000.0, 600.0);
         let center = vec2(
-            arena.left_goal.goal_line_x - 2.0,
+            arena.left_goal.mouth_line_x - 2.0,
             (arena.left_goal.opening_top_y + arena.left_goal.opening_bottom_y) * 0.5,
         );
 
         assert_eq!(arena.goal_scored_at(center, 12.0), None);
+    }
+
+    #[test]
+    fn goal_cavities_are_symmetric_and_wide_enough() {
+        let arena = ArenaGeometry::from_screen(1000.0, 600.0);
+
+        assert!(arena.left_goal.goal_cavity_rect.w > 80.0);
+        assert!(arena.right_goal.goal_cavity_rect.w > 80.0);
+        assert!(
+            (arena.left_goal.goal_cavity_rect.w - arena.right_goal.goal_cavity_rect.w).abs() < 0.01
+        );
+    }
+
+    #[test]
+    fn right_goal_capture_rect_is_usable() {
+        let arena = ArenaGeometry::from_screen(1000.0, 600.0);
+
+        assert!(arena.right_goal.goal_capture_rect.w > 80.0);
+        assert!(arena.right_goal.goal_capture_rect.h > 100.0);
+    }
+
+    #[test]
+    fn centered_ball_can_score_in_both_goals() {
+        let arena = ArenaGeometry::from_screen(1000.0, 600.0);
+        let y = (arena.left_goal.opening_top_y + arena.left_goal.opening_bottom_y) * 0.5;
+
+        let left_center = vec2(arena.left_goal.mouth_line_x - 24.0, y);
+        let right_center = vec2(arena.right_goal.mouth_line_x + 24.0, y);
+
+        assert_eq!(
+            arena.goal_scored_at(left_center, 12.0),
+            Some(GoalSide::Left)
+        );
+        assert_eq!(
+            arena.goal_scored_at(right_center, 12.0),
+            Some(GoalSide::Right)
+        );
     }
 }

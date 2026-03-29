@@ -1,8 +1,10 @@
 use crate::gameplay::{GameplayAssets, GameplaySession, MatchConfig, MatchMode};
+use crate::leaderboard::assets::LeaderboardAssets;
+use crate::leaderboard::scene::ScoreboardScene;
+use crate::leaderboard::storage::LeaderboardStore;
 use crate::match_setup::{MatchSetupAssets, MatchSetupScene};
 use crate::menu::{MenuAssets, MenuScene};
 use crate::mode_selection::{ModeSelectionAssets, ModeSelectionScene};
-use crate::scoreboard::ScoreboardScene;
 use macroquad::prelude::*;
 
 pub(crate) enum Scene {
@@ -19,6 +21,11 @@ pub(crate) enum SceneCommand {
     OpenMatchSetup(MatchMode),
     StartMatch(MatchConfig),
     OpenScoreboard,
+    RecordMatchResult {
+        mode: MatchMode,
+        left_score: u8,
+        right_score: u8,
+    },
     BackToMenu,
     BackToModeSelection,
     Quit,
@@ -30,6 +37,8 @@ pub(crate) struct App {
     menu_assets: MenuAssets,
     mode_selection_assets: ModeSelectionAssets,
     match_setup_assets: MatchSetupAssets,
+    leaderboard_assets: LeaderboardAssets,
+    leaderboard_store: LeaderboardStore,
     scene: Scene,
 }
 
@@ -39,12 +48,16 @@ impl App {
         let menu_assets = MenuAssets::load().await?;
         let mode_selection_assets = ModeSelectionAssets::load().await?;
         let match_setup_assets = MatchSetupAssets::load().await?;
+        let leaderboard_assets = LeaderboardAssets::load().await?;
+        let leaderboard_store = LeaderboardStore::load_or_default("save/leaderboard.json")?;
 
         Ok(Self {
             gameplay_assets,
             menu_assets,
             mode_selection_assets,
             match_setup_assets,
+            leaderboard_assets,
+            leaderboard_store,
             scene: Scene::Menu(MenuScene::new()),
         })
     }
@@ -88,7 +101,22 @@ impl App {
                 ));
             }
             SceneCommand::OpenScoreboard => {
-                self.scene = Scene::Scoreboard(ScoreboardScene::new(&self.menu_assets));
+                self.scene = Scene::Scoreboard(ScoreboardScene::new(
+                    &self.leaderboard_assets,
+                    self.leaderboard_store.snapshot(),
+                ));
+            }
+            SceneCommand::RecordMatchResult {
+                mode,
+                left_score,
+                right_score,
+            } => {
+                if let Err(err) = self
+                    .leaderboard_store
+                    .record_match(mode, left_score, right_score)
+                {
+                    eprintln!("failed to persist leaderboard data: {err}");
+                }
             }
             SceneCommand::BackToMenu => {
                 self.scene = Scene::Menu(MenuScene::new());

@@ -9,9 +9,9 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry) {
     let is_left_side = player.side < 0;
 
     let own_goal_x = if is_left_side {
-        arena.left_goal.goal_line_x
+        arena.left_goal.mouth_line_x
     } else {
-        arena.right_goal.goal_line_x
+        arena.right_goal.mouth_line_x
     };
 
     let attack_dir = if is_left_side { 1.0 } else { -1.0 };

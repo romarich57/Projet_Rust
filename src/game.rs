@@ -172,11 +172,11 @@ mod tests {
         let arena = ArenaGeometry::from_screen(1000.0, 600.0);
 
         let left_center = vec2(
-            arena.left_goal.goal_line_x - 24.0,
+            arena.left_goal.mouth_line_x - 24.0,
             (arena.left_goal.opening_top_y + arena.left_goal.opening_bottom_y) * 0.5,
         );
         let right_center = vec2(
-            arena.right_goal.goal_line_x + 24.0,
+            arena.right_goal.mouth_line_x + 24.0,
             (arena.right_goal.opening_top_y + arena.right_goal.opening_bottom_y) * 0.5,
         );
 

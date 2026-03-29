@@ -34,7 +34,7 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         ball.x += nx * penetration;
         ball.y += ny * penetration;
 
-        let shot_progress = (-player.foot_angle).clamp(0.0, 1.0);
+        let shot_progress = player.shot_progress();
         let in_shot_phase = player.is_shooting || shot_progress > 0.22;
 
         if in_shot_phase {

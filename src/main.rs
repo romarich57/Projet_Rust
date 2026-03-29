@@ -11,10 +11,11 @@ mod match_setup;
 mod menu;
 #[path = "choix_mode/mod.rs"]
 mod mode_selection;
+#[path = "Leaderboard/mod.rs"]
+mod leaderboard;
 mod models;
 mod physics;
 mod render;
-mod scoreboard;
 
 use app::App;
 use macroquad::prelude::*;
@@ -24,7 +25,8 @@ fn window_config() -> Conf {
         window_title: "Head Soccer".to_owned(),
         window_width: 1000,
         window_height: 600,
-        window_resizable: false,
+        window_resizable: true,
+        fullscreen: true,
         ..Default::default()
     }
 }

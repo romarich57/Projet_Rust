@@ -66,6 +66,7 @@ fn draw_goal_texture(texture: &Texture2D, rect: Rect, flip_x: bool) {
 
 fn draw_player(player: &Player) {
     let foot_draw_x = player.x;
+    let foot_pivot = player.foot_pivot_screen_pos();
     draw_texture_ex(
         &player.foot_texture,
         foot_draw_x,
@@ -74,7 +75,8 @@ fn draw_player(player: &Player) {
         DrawTextureParams {
             dest_size: Some(vec2(player.foot_width, player.foot_height)),
             rotation: player.foot_angle,
-            flip_x: player.faces_left(),
+            flip_x: player.faces_right(),
+            pivot: Some(foot_pivot),
             ..Default::default()
         },
     );
@@ -187,18 +189,20 @@ fn draw_debug_hitbox(player: &Player, ball: &Ball) {
 
 fn draw_goal_debug(goal: crate::match_arena::GoalGeometry) {
     for rect in [
-        goal.front_post_rect,
+        goal.field_post_tip_rect,
         goal.back_post_rect,
         goal.crossbar_rect,
-        goal.net_zone_rect,
+        goal.goal_floor_rect,
+        goal.goal_cavity_rect,
+        goal.goal_capture_rect,
     ] {
         draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 2.0, SKYBLUE);
     }
 
     draw_line(
-        goal.goal_line_x,
+        goal.mouth_line_x,
         goal.opening_top_y,
-        goal.goal_line_x,
+        goal.mouth_line_x,
         goal.opening_bottom_y,
         2.0,
         YELLOW,

@@ -1,0 +1,12 @@
+{
+  "solo_bot_wins": 0,
+  "solo_bot_losses": 0,
+  "matches": [
+    {
+      "mode": "OneVsOne",
+      "left_score": 4,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774750550
+    }
+  ]
+}

@@ -205,6 +205,7 @@ pub(crate) struct GameplaySession {
     overlay_state: GameplayOverlayState,
     pub(crate) match_config: MatchConfig,
     soccer_match: Match,
+    result_recorded: bool,
 }
 
 impl GameplaySession {
@@ -241,6 +242,7 @@ impl GameplaySession {
             overlay_state: GameplayOverlayState::Running,
             match_config: config,
             soccer_match: Match::new(config.length.seconds()),
+            result_recorded: false,
         }
     }
 
@@ -279,6 +281,15 @@ impl GameplaySession {
             return SceneCommand::None;
         }
 
+        if let Some(command) = pending_match_result_command(
+            self.match_config,
+            &self.soccer_match,
+            self.result_recorded,
+        ) {
+            self.result_recorded = true;
+            return command;
+        }
+
         if matches!(self.soccer_match.state, GameState::Finished) {
             return SceneCommand::None;
         }
@@ -310,6 +321,15 @@ impl GameplaySession {
             &self.arena,
             get_frame_time(),
         );
+
+        if let Some(command) = pending_match_result_command(
+            self.match_config,
+            &self.soccer_match,
+            self.result_recorded,
+        ) {
+            self.result_recorded = true;
+            return command;
+        }
 
         SceneCommand::None
     }
@@ -447,17 +467,73 @@ fn head_texture_for_side(
     }
 }
 
+const HEAD_SIZE: f32 = 78.0;
+const HEAD_OFFSET_X: f32 = 8.0;
+const HEAD_OFFSET_Y: f32 = -52.0;
+const FOOT_TO_HEAD_HEIGHT_RATIO: f32 = 0.70;
+const FOOT_TEXTURE_ASPECT_RATIO: f32 = 612.0 / 408.0;
+const FOOT_GROUND_CONTACT_RATIO: f32 = 0.72;
+const FOOT_PIVOT_FROM_BACK_X_RATIO: f32 = 0.18;
+const FOOT_PIVOT_Y_RATIO: f32 = 0.58;
+const FOOT_HITBOX_OFFSET_X_RATIO: f32 = 22.0 / 114.0;
+const FOOT_HITBOX_OFFSET_Y_RATIO: f32 = 12.0 / 50.0;
+const FOOT_HITBOX_WIDTH_RATIO: f32 = 65.0 / 114.0;
+const FOOT_HITBOX_HEIGHT_RATIO: f32 = 30.0 / 50.0;
+const HEAD_HITBOX_OFFSET_X_RATIO: f32 = 12.0 / 78.0;
+const HEAD_HITBOX_OFFSET_Y_RATIO: f32 = 8.0 / 78.0;
+const HEAD_HITBOX_WIDTH_RATIO: f32 = 54.0 / 78.0;
+const HEAD_HITBOX_HEIGHT_RATIO: f32 = 62.0 / 78.0;
+
 fn apply_match_player_tuning(player: &mut Player, arena: &ArenaGeometry) {
     let scale = arena.uniform_scale;
+    let head_size = HEAD_SIZE * scale;
+    let foot_height = head_size * FOOT_TO_HEAD_HEIGHT_RATIO;
+    let foot_width = foot_height * FOOT_TEXTURE_ASPECT_RATIO;
 
-    player.foot_width = 176.0 * scale;
-    player.foot_height = 78.0 * scale;
-    player.head_width = 118.0 * scale;
-    player.head_height = 118.0 * scale;
-    player.head_offset_x = 34.0 * scale;
-    player.head_offset_y = -92.0 * scale;
-    player.set_foot_hitbox(34.0 * scale, 20.0 * scale, 98.0 * scale, 44.0 * scale);
-    player.set_head_hitbox(17.0 * scale, 10.0 * scale, 84.0 * scale, 92.0 * scale);
+    player.foot_width = foot_width;
+    player.foot_height = foot_height;
+    player.head_width = head_size;
+    player.head_height = head_size;
+    player.head_offset_x = HEAD_OFFSET_X * scale;
+    player.head_offset_y = HEAD_OFFSET_Y * scale;
+    player.set_foot_visual_anchor(
+        FOOT_GROUND_CONTACT_RATIO,
+        FOOT_PIVOT_FROM_BACK_X_RATIO,
+        FOOT_PIVOT_Y_RATIO,
+    );
+    player.set_foot_hitbox(
+        foot_width * FOOT_HITBOX_OFFSET_X_RATIO,
+        foot_height * FOOT_HITBOX_OFFSET_Y_RATIO,
+        foot_width * FOOT_HITBOX_WIDTH_RATIO,
+        foot_height * FOOT_HITBOX_HEIGHT_RATIO,
+    );
+    player.set_head_hitbox(
+        head_size * HEAD_HITBOX_OFFSET_X_RATIO,
+        head_size * HEAD_HITBOX_OFFSET_Y_RATIO,
+        head_size * HEAD_HITBOX_WIDTH_RATIO,
+        head_size * HEAD_HITBOX_HEIGHT_RATIO,
+    );
+}
+
+fn pending_match_result_command(
+    match_config: MatchConfig,
+    soccer_match: &Match,
+    result_recorded: bool,
+) -> Option<SceneCommand> {
+    if result_recorded || !matches!(soccer_match.state, GameState::Finished) {
+        return None;
+    }
+
+    let (left_score, right_score) = soccer_match.score();
+    Some(SceneCommand::RecordMatchResult {
+        mode: match_config.mode,
+        left_score: normalize_score(left_score),
+        right_score: normalize_score(right_score),
+    })
+}
+
+fn normalize_score(score: i32) -> u8 {
+    score.clamp(0, u8::MAX as i32) as u8
 }
 
 #[cfg(test)]
@@ -477,6 +553,40 @@ mod tests {
         assert_eq!(
             control_types_for_mode(MatchMode::OneVsOne),
             (ControlType::Player1, ControlType::Player2)
+        );
+    }
+
+    #[test]
+    fn pending_match_result_command_returns_finished_score_once() {
+        let config = MatchConfig::default_for_mode(MatchMode::Solo);
+        let mut soccer_match = Match::new(0.0);
+        soccer_match.score_p1 = 3;
+        soccer_match.score_p2 = 1;
+        soccer_match.state = GameState::Finished;
+
+        let command = pending_match_result_command(config, &soccer_match, false);
+
+        assert_eq!(
+            command,
+            Some(SceneCommand::RecordMatchResult {
+                mode: MatchMode::Solo,
+                left_score: 3,
+                right_score: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn pending_match_result_command_returns_none_when_already_recorded() {
+        let config = MatchConfig::default_for_mode(MatchMode::OneVsOne);
+        let mut soccer_match = Match::new(0.0);
+        soccer_match.score_p1 = 2;
+        soccer_match.score_p2 = 2;
+        soccer_match.state = GameState::Finished;
+
+        assert_eq!(
+            pending_match_result_command(config, &soccer_match, true),
+            None
         );
     }
 }
