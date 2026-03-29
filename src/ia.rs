@@ -1,17 +1,17 @@
+use crate::match_arena::ArenaGeometry;
 use crate::models::ball::Ball;
 use crate::models::player::Player;
-use crate::physics::{ground_level, scale_x, GOAL_MARGIN_REFERENCE};
 use macroquad::prelude::screen_width;
 
-pub fn handle_ai(player: &mut Player, ball: &Ball) {
+pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry) {
     let field_w = screen_width();
     let field_mid = field_w * 0.5;
     let is_left_side = player.side < 0;
 
     let own_goal_x = if is_left_side {
-        GOAL_MARGIN_REFERENCE * scale_x()
+        arena.left_goal.goal_line_x
     } else {
-        field_w - GOAL_MARGIN_REFERENCE * scale_x()
+        arena.right_goal.goal_line_x
     };
 
     let attack_dir = if is_left_side { 1.0 } else { -1.0 };
@@ -37,14 +37,12 @@ pub fn handle_ai(player: &mut Player, ball: &Ball) {
         field_w * 0.68
     };
 
-    let defend_x = (own_goal_x * 0.40 + predicted_ball_x * 0.60).clamp(
-        GOAL_MARGIN_REFERENCE * scale_x(),
-        field_w - GOAL_MARGIN_REFERENCE * scale_x(),
-    );
+    let defend_x = (own_goal_x * 0.40 + predicted_ball_x * 0.60)
+        .clamp(arena.player_left_wall_x, arena.player_right_wall_x);
 
     let attack_x = (predicted_ball_x - player.collision_width() * 0.45).clamp(
-        GOAL_MARGIN_REFERENCE * scale_x(),
-        field_w - GOAL_MARGIN_REFERENCE * scale_x() - player.collision_width(),
+        arena.player_left_wall_x,
+        arena.player_right_wall_x - player.collision_width(),
     );
 
     let target_x = if dangerous_ball {
@@ -65,7 +63,7 @@ pub fn handle_ai(player: &mut Player, ball: &Ball) {
         player.vx = 0.0;
     }
 
-    let on_ground = player.y >= player.y_at_ground(ground_level()) - 2.0;
+    let on_ground = player.y >= player.y_at_ground(arena.ground_y) - 2.0;
     let ball_reachable_x = (ball.x - player_center_x).abs() < player.collision_width() * 0.55;
     let ball_descending_on_player = predicted_ball_y > player_head_y - player.head_height * 0.2
         && predicted_ball_y < player_foot_y;

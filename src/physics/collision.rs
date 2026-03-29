@@ -10,15 +10,9 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
 
     let (bcx, bcy, bcr) = ball.circle_hitbox();
 
-    if let Some((nx, ny, penetration)) = rect_circle_collision(
-        head_x,
-        head_y,
-        head_w,
-        head_h,
-        bcx,
-        bcy,
-        bcr,
-    ) {
+    if let Some((nx, ny, penetration)) =
+        rect_circle_collision(head_x, head_y, head_w, head_h, bcx, bcy, bcr)
+    {
         // Separate shapes to avoid sticky overlap.
         ball.x += nx * penetration;
         ball.y += ny * penetration;
@@ -34,15 +28,9 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         }
     }
 
-    if let Some((nx, ny, penetration)) = rect_circle_collision(
-        foot_x,
-        foot_y,
-        foot_w,
-        foot_h,
-        bcx,
-        bcy,
-        bcr,
-    ) {
+    if let Some((nx, ny, penetration)) =
+        rect_circle_collision(foot_x, foot_y, foot_w, foot_h, bcx, bcy, bcr)
+    {
         ball.x += nx * penetration;
         ball.y += ny * penetration;
 
@@ -85,15 +73,9 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     // Body collision: covers the torso between head and feet.
     let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
     if body_h > 0.0 {
-        if let Some((nx, ny, penetration)) = rect_circle_collision(
-            body_x,
-            body_y,
-            body_w,
-            body_h,
-            bcx,
-            bcy,
-            bcr,
-        ) {
+        if let Some((nx, ny, penetration)) =
+            rect_circle_collision(body_x, body_y, body_w, body_h, bcx, bcy, bcr)
+        {
             // Push ball fully out of the body
             ball.x += nx * penetration;
             ball.y += ny * penetration;
@@ -176,8 +158,8 @@ fn limit_ball_speed(ball: &mut Ball, vmax: f32) {
 
 pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
     // Prevent players from walking through each other
-    let hw1 = p1.collision_width()/3.0; // Use a fraction of the collision width for more forgiving collisions
-    let hw2 = p2.collision_width()/3.0;
+    let hw1 = p1.collision_width() / 3.0; // Use a fraction of the collision width for more forgiving collisions
+    let hw2 = p2.collision_width() / 3.0;
 
     let c1 = p1.x + hw1;
     let c2 = p2.x + hw2;

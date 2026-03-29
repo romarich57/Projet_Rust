@@ -1,55 +1,30 @@
+use crate::match_arena::{ArenaGeometry, GoalGeometry};
 use crate::models::ball::Ball;
-use macroquad::prelude::screen_width;
+use crate::physics::{scale_x, scale_y, BALL_GRAVITY_REFERENCE};
+use macroquad::prelude::*;
 use macroquad::time::get_frame_time;
-use crate::physics::{
-    BALL_GRAVITY_REFERENCE, CROSSBAR_THICKNESS_REFERENCE, CROSSBAR_Y_REFERENCE,
-    GOAL_MARGIN_REFERENCE, ground_level, scale_x, scale_y,
-};
 
-pub fn apply_ball_physics(ball: &mut Ball) {
-    let ground_y = ground_level();
-    let left_goal_x = GOAL_MARGIN_REFERENCE * scale_x();
-    let right_goal_x = screen_width() - GOAL_MARGIN_REFERENCE * scale_x();
-    let crossbar_y = CROSSBAR_Y_REFERENCE * scale_y();
-    let crossbar_thickness = CROSSBAR_THICKNESS_REFERENCE * scale_y();
-
-    // Framerate independence: 75 FPS reference keeps existing tuning
+pub fn apply_ball_physics(ball: &mut Ball, arena: &ArenaGeometry) {
     let dt = get_frame_time().clamp(1.0 / 240.0, 1.0 / 20.0);
     let scale = dt * 75.0;
 
-    // Gravity
     ball.vy += BALL_GRAVITY_REFERENCE * scale;
-
-    // Update position from velocity
     ball.x += ball.vx * scale;
     ball.y += ball.vy * scale;
-
     ball.angle += ball.vx * 0.05 * scale;
 
-    let (bcx, bcy, bcr) = ball.circle_hitbox();
+    resolve_goal_collisions(ball, arena.left_goal);
+    resolve_goal_collisions(ball, arena.right_goal);
 
-    if bcx < left_goal_x || bcx > right_goal_x {
-        // Bounce on top of crossbar
-        if bcy + bcr > crossbar_y && bcy < crossbar_y && ball.vy > 0.0 {
-            ball.y = crossbar_y - bcr - ball.hitbox.offset_y;
-            ball.vy = -ball.vy * 0.8;
-            ball.vx *= 0.98_f32.powf(scale);
-        }
-        // Bounce under crossbar
-        else if bcy - bcr < crossbar_y + crossbar_thickness && bcy > crossbar_y && ball.vy < 0.0 {
-            ball.y = crossbar_y + crossbar_thickness + bcr - ball.hitbox.offset_y;
-            ball.vy = -ball.vy * 0.8;
-        }
+    if arena.ball_in_goal_net(ball).is_some() {
+        ball.vx *= 0.985_f32.powf(scale);
+        ball.vy *= 0.992_f32.powf(scale);
     }
 
-    // If the ball is behind the goal line under the crossbar, damp horizontal speed.
-    if (bcx < left_goal_x || bcx > right_goal_x) && bcy > crossbar_y {
-        ball.vx *= 0.93_f32.powf(scale);
-    }
+    let (center_x, center_y, radius) = ball.circle_hitbox();
 
-    // Ground bounce only for meaningful downward impacts.
-    if bcy + bcr > ground_y {
-        ball.y = ground_y - bcr - ball.hitbox.offset_y;
+    if center_y + radius > arena.ground_y {
+        ball.y = arena.ground_y - radius - ball.hitbox.offset_y;
 
         if ball.vy > 0.0 {
             let impact_speed = ball.vy;
@@ -64,46 +39,90 @@ pub fn apply_ball_physics(ball: &mut Ball) {
             ball.vy = 0.0;
         }
 
-        // Ground friction
         ball.vx *= 0.94_f32.powf(scale);
         if ball.vx.abs() < 0.03 * scale_x() {
             ball.vx = 0.0;
         }
     }
 
-    // Soft force to keep the ball inside the field bounds.
-    let return_zone = 120.0 * scale_x();
-    let return_force = 0.18 * scale_x() * scale;
-
-    // Left boundary
-    if bcx - bcr < 0.0 {
-        ball.x = bcr - ball.hitbox.offset_x;
+    if center_x - radius < 0.0 {
+        ball.x = radius - ball.hitbox.offset_x;
         if ball.vx < 0.0 {
-            ball.vx = 0.0;
+            ball.vx = -ball.vx * 0.35;
         }
     }
-    let left_distance = (bcx - bcr).max(0.0);
-    if left_distance < return_zone {
-        let intensity = 1.0 - left_distance / return_zone;
-        ball.vx += return_force * intensity;
-    }
 
-    // Right boundary
-    if bcx + bcr > screen_width() {
-        ball.x = screen_width() - bcr - ball.hitbox.offset_x;
+    if center_x + radius > arena.screen_width {
+        ball.x = arena.screen_width - radius - ball.hitbox.offset_x;
         if ball.vx > 0.0 {
-            ball.vx = 0.0;
+            ball.vx = -ball.vx * 0.35;
         }
     }
-    let right_distance = (screen_width() - (bcx + bcr)).max(0.0);
-    if right_distance < return_zone {
-        let intensity = 1.0 - right_distance / return_zone;
-        ball.vx -= return_force * intensity;
+
+    if center_y - radius < arena.hud_height {
+        ball.y = arena.hud_height + radius - ball.hitbox.offset_y;
+        if ball.vy < 0.0 {
+            ball.vy = -ball.vy * 0.6;
+        }
+    }
+}
+
+fn resolve_goal_collisions(ball: &mut Ball, goal: GoalGeometry) {
+    for rect in [
+        goal.front_post_rect,
+        goal.back_post_rect,
+        goal.crossbar_rect,
+    ] {
+        if let Some((nx, ny, penetration)) = circle_rect_collision(ball, rect) {
+            ball.x += nx * penetration;
+            ball.y += ny * penetration;
+
+            let incoming = vec2(ball.vx, ball.vy);
+            let normal = vec2(nx, ny);
+            let reflected = incoming - 2.0 * incoming.dot(normal) * normal;
+
+            ball.vx = reflected.x * 0.78;
+            ball.vy = reflected.y * 0.78;
+
+            if ny < -0.1 {
+                ball.vx *= 0.98;
+            }
+        }
+    }
+}
+
+fn circle_rect_collision(ball: &Ball, rect: Rect) -> Option<(f32, f32, f32)> {
+    let (center_x, center_y, radius) = ball.circle_hitbox();
+    let closest_x = center_x.clamp(rect.x, rect.right());
+    let closest_y = center_y.clamp(rect.y, rect.bottom());
+    let dx = center_x - closest_x;
+    let dy = center_y - closest_y;
+    let distance_sq = dx * dx + dy * dy;
+
+    if distance_sq > radius * radius {
+        return None;
     }
 
-    // Ceiling collision
-    if bcy - bcr < 0.0 {
-        ball.y = bcr + ball.hitbox.offset_y;
-        ball.vy = -ball.vy * 0.6;
+    if distance_sq > 0.0001 {
+        let distance = distance_sq.sqrt();
+        return Some((dx / distance, dy / distance, radius - distance));
     }
+
+    let left = (center_x - rect.x).abs();
+    let right = (rect.right() - center_x).abs();
+    let top = (center_y - rect.y).abs();
+    let bottom = (rect.bottom() - center_y).abs();
+    let min_distance = left.min(right).min(top.min(bottom));
+
+    let (nx, ny) = if min_distance == left {
+        (-1.0, 0.0)
+    } else if min_distance == right {
+        (1.0, 0.0)
+    } else if min_distance == top {
+        (0.0, -1.0)
+    } else {
+        (0.0, 1.0)
+    };
+
+    Some((nx, ny, radius + min_distance))
 }
