@@ -20,9 +20,6 @@ pub fn draw_all(
         Rect::new(0.0, 0.0, arena.screen_width, arena.screen_height),
     );
 
-    draw_goal_texture(goal_texture, arena.left_goal.draw_rect, false);
-    draw_goal_texture(goal_texture, arena.right_goal.draw_rect, true);
-
     draw_texture_ex(
         &ball.texture,
         ball.x - ball.visual_radius(),
@@ -38,6 +35,9 @@ pub fn draw_all(
     for player in players {
         draw_player(player);
     }
+
+    draw_goal_texture(goal_texture, arena.left_goal.draw_rect, false);
+    draw_goal_texture(goal_texture, arena.right_goal.draw_rect, true);
 
     draw_state_overlay(game_match, finished_redirect_seconds);
 
