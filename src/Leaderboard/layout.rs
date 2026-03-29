@@ -48,23 +48,61 @@ impl LeaderboardLayout {
             let rect = Rect::new(row_x, y, row_width, row_height);
             LeaderboardRowLayout {
                 rect,
-                mode_slot: Rect::new(rect.x + 14.0 * scale_x, rect.y + 2.0 * scale_y, 122.0 * scale_x, 32.0 * scale_y),
+                mode_slot: Rect::new(
+                    rect.x + 14.0 * scale_x,
+                    rect.y + 2.0 * scale_y,
+                    122.0 * scale_x,
+                    32.0 * scale_y,
+                ),
                 score_center_x: rect.x + rect.w * 0.79,
                 score_baseline_y: rect.y + rect.h * 0.72,
             }
         });
 
         Self {
-            victory_slot: Rect::new(80.0 * scale_x, 34.0 * scale_y, 372.0 * scale_x, 116.0 * scale_y),
+            victory_slot: Rect::new(
+                80.0 * scale_x,
+                34.0 * scale_y,
+                372.0 * scale_x,
+                116.0 * scale_y,
+            ),
             victory_value_pos: vec2(265.0 * scale_x, 163.0 * scale_y),
-            defeat_slot: Rect::new(548.0 * scale_x, 34.0 * scale_y, 372.0 * scale_x, 116.0 * scale_y),
+            defeat_slot: Rect::new(
+                548.0 * scale_x,
+                34.0 * scale_y,
+                372.0 * scale_x,
+                116.0 * scale_y,
+            ),
             defeat_value_pos: vec2(734.0 * scale_x, 163.0 * scale_y),
-            history_slot: Rect::new(317.0 * scale_x, 135.0 * scale_y, 362.0 * scale_x, 98.0 * scale_y),
+            history_slot: Rect::new(
+                317.0 * scale_x,
+                135.0 * scale_y,
+                362.0 * scale_x,
+                98.0 * scale_y,
+            ),
             panel_rect,
-            mode_header_slot: Rect::new(panel_rect.x + 47.0 * scale_x, panel_rect.y + 6.0 * scale_y, 155.0 * scale_x, 62.0 * scale_y),
-            score_header_slot: Rect::new(panel_rect.x + panel_rect.w - 205.0 * scale_x, panel_rect.y + 6.0 * scale_y, 155.0 * scale_x, 62.0 * scale_y),
-            return_button_slot: Rect::new(377.0 * scale_x, 498.0 * scale_y, 246.0 * scale_x, 78.0 * scale_y),
-            empty_state_center: vec2(panel_rect.x + panel_rect.w * 0.5, panel_rect.y + panel_rect.h * 0.61),
+            mode_header_slot: Rect::new(
+                panel_rect.x + 47.0 * scale_x,
+                panel_rect.y + 6.0 * scale_y,
+                155.0 * scale_x,
+                62.0 * scale_y,
+            ),
+            score_header_slot: Rect::new(
+                panel_rect.x + panel_rect.w - 205.0 * scale_x,
+                panel_rect.y + 6.0 * scale_y,
+                155.0 * scale_x,
+                62.0 * scale_y,
+            ),
+            return_button_slot: Rect::new(
+                377.0 * scale_x,
+                498.0 * scale_y,
+                246.0 * scale_x,
+                78.0 * scale_y,
+            ),
+            empty_state_center: vec2(
+                panel_rect.x + panel_rect.w * 0.5,
+                panel_rect.y + panel_rect.h * 0.61,
+            ),
             row_layouts,
         }
     }

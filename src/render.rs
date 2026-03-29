@@ -123,8 +123,12 @@ fn draw_state_overlay(game_match: &Match, finished_redirect_seconds: Option<f32>
                 game_match.score_p1, game_match.score_p2
             );
             let countdown_value = finished_redirect_seconds.map(countdown_display_from_seconds);
-            let redirect_text = finished_redirect_seconds
-                .map(|seconds| format!("Redirection vers le menu dans {}...", countdown_display_from_seconds(seconds)));
+            let redirect_text = finished_redirect_seconds.map(|seconds| {
+                format!(
+                    "Redirection vers le menu dans {}...",
+                    countdown_display_from_seconds(seconds)
+                )
+            });
             let title_size = 84.0;
             let subtitle_size = 34.0;
             let countdown_size = 96.0;
@@ -184,7 +188,13 @@ fn draw_state_overlay(game_match: &Match, finished_redirect_seconds: Option<f32>
             if let (Some(text), Some(metrics)) = (redirect_text, redirect_metrics) {
                 let redirect_x = screen_width() * 0.5 - metrics.width * 0.5;
                 let redirect_y = countdown_y + 48.0;
-                draw_text(&text, redirect_x + 2.0, redirect_y + 2.0, redirect_size, BLACK);
+                draw_text(
+                    &text,
+                    redirect_x + 2.0,
+                    redirect_y + 2.0,
+                    redirect_size,
+                    BLACK,
+                );
                 draw_text(
                     &text,
                     redirect_x,

@@ -69,6 +69,7 @@ impl MenuScene {
         self.draw_button(MenuButton::Play, &assets.play_button);
         self.draw_button(MenuButton::Scoreboard, &assets.scoreboard_button);
         self.draw_button(MenuButton::Quit, &assets.quit_button);
+        self.draw_button(MenuButton::Settings, &assets.settings_icon);
     }
 
     fn draw_button(&self, button: MenuButton, texture: &Texture2D) {

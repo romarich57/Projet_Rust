@@ -26,8 +26,7 @@ impl LeaderboardAssets {
             return_button: load_processed_texture("src/assets/Leaderboard/retour.png", false)
                 .await?,
             mode_header: load_processed_texture("src/assets/Leaderboard/mode.png", false).await?,
-            score_header: load_processed_texture("src/assets/Leaderboard/score.png", false)
-                .await?,
+            score_header: load_processed_texture("src/assets/Leaderboard/score.png", false).await?,
             solo_badge: load_processed_texture("src/assets/Leaderboard/solo.png", false).await?,
             one_vs_one_badge: load_processed_texture("src/assets/Leaderboard/1V1.png", false)
                 .await?,

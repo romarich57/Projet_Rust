@@ -409,7 +409,10 @@ mod tests {
         let layout = HudLayout::from_screen(1000.0, 600.0);
 
         assert!(rect_contains_rect(layout.bar_rect, layout.quit_button_rect));
-        assert!(rect_contains_rect(layout.bar_rect, layout.pause_button_rect));
+        assert!(rect_contains_rect(
+            layout.bar_rect,
+            layout.pause_button_rect
+        ));
     }
 
     #[test]

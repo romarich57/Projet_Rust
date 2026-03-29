@@ -181,7 +181,13 @@ fn draw_panel(panel_rect: Rect) {
         panel_rect.h,
         Color::new(0.0, 0.0, 0.0, 0.28),
     );
-    draw_rectangle(panel_rect.x, panel_rect.y, panel_rect.w, panel_rect.h, PANEL_FILL);
+    draw_rectangle(
+        panel_rect.x,
+        panel_rect.y,
+        panel_rect.w,
+        panel_rect.h,
+        PANEL_FILL,
+    );
     draw_rectangle_lines(
         panel_rect.x,
         panel_rect.y,
@@ -226,7 +232,13 @@ fn draw_history_row(layout: LeaderboardRowLayout, mode: MatchHistoryMode, badge:
     }
 }
 
-fn draw_shadowed_centered_text(text: &str, center_x: f32, baseline_y: f32, font_size: f32, color: Color) {
+fn draw_shadowed_centered_text(
+    text: &str,
+    center_x: f32,
+    baseline_y: f32,
+    font_size: f32,
+    color: Color,
+) {
     let metrics = measure_text(text, None, font_size as u16, 1.0);
     let draw_x = center_x - metrics.width * 0.5;
     draw_text(

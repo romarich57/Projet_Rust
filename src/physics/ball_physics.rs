@@ -81,7 +81,7 @@ fn resolve_goal_collisions(ball: &mut Ball, goal: GoalGeometry) {
     // On active le rebond de sécurité pour TOUT le toit de la cage (transversale ET poteau arrière)
     resolve_goal_rect_collision(ball, goal.crossbar_rect, true, goal.side);
     resolve_goal_rect_collision(ball, goal.back_post_rect, true, goal.side); // Passé à true !
-    
+
     // Le bout du poteau et le sol restent normaux
     resolve_goal_rect_collision(ball, goal.field_post_tip_rect, false, goal.side);
     resolve_goal_rect_collision(ball, goal.goal_floor_rect, false, goal.side);
@@ -126,7 +126,12 @@ fn retained_ball_state(
     }
 }
 
-fn resolve_goal_rect_collision(ball: &mut Ball, rect: Rect, is_top_bounce_active: bool, side: crate::match_arena::GoalSide) {
+fn resolve_goal_rect_collision(
+    ball: &mut Ball,
+    rect: Rect,
+    is_top_bounce_active: bool,
+    side: crate::match_arena::GoalSide,
+) {
     if let Some((normal, penetration)) = circle_rect_collision(ball, rect) {
         ball.x += normal.x * penetration;
         ball.y += normal.y * penetration;
@@ -176,7 +181,7 @@ fn crossbar_top_bounce_state(
 
     let corrected_center = vec2(center.x, top_rect.y - radius - CROSSBAR_TOP_EPSILON);
     let rebound_vy = -velocity.y.abs().max(CROSSBAR_MIN_REBOUND_SPEED);
-    
+
     let rebound_vx = if velocity.x.abs() < CROSSBAR_STATIC_ESCAPE_VX {
         let horizontal_direction = match side {
             crate::match_arena::GoalSide::Left => 1.0, // But gauche -> pousse vers la droite

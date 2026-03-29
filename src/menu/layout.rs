@@ -12,6 +12,7 @@ pub(super) struct MenuLayout {
     play_slot: Rect,
     scoreboard_slot: Rect,
     quit_slot: Rect,
+    settings_slot: Rect,
 }
 
 impl MenuLayout {
@@ -25,6 +26,7 @@ impl MenuLayout {
         let play_slot = scaled_rect(310.0, 250.0, 380.0, 96.0, scale_x, scale_y);
         let scoreboard_slot = scaled_rect(310.0, 356.0, 380.0, 96.0, scale_x, scale_y);
         let quit_slot = scaled_rect(310.0, 462.0, 380.0, 96.0, scale_x, scale_y);
+        let settings_slot = scaled_rect(904.0, 504.0, 72.0, 72.0, scale_x, scale_y);
 
         Self {
             logo_slot,
@@ -33,6 +35,7 @@ impl MenuLayout {
             play_slot,
             scoreboard_slot,
             quit_slot,
+            settings_slot,
         }
     }
 
@@ -41,6 +44,7 @@ impl MenuLayout {
             MenuButton::Play => self.play_slot,
             MenuButton::Scoreboard => self.scoreboard_slot,
             MenuButton::Quit => self.quit_slot,
+            MenuButton::Settings => self.settings_slot,
         }
     }
 }
@@ -59,5 +63,8 @@ mod tests {
 
         assert!(layout.play_slot.bottom() <= layout.scoreboard_slot.y);
         assert!(layout.scoreboard_slot.bottom() <= layout.quit_slot.y);
+        assert!(layout.settings_slot.right() <= REFERENCE_WIDTH);
+        assert!(layout.settings_slot.bottom() <= REFERENCE_HEIGHT);
+        assert!(!layout.settings_slot.overlaps(&layout.quit_slot));
     }
 }

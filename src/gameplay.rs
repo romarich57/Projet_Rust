@@ -12,6 +12,7 @@ use crate::models::player::{ControlType, Player};
 use crate::physics;
 use crate::physics::player_physics;
 use crate::render;
+use crate::settings::{ControlsConfig, PlayerBindings};
 use macroquad::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -207,12 +208,18 @@ pub(crate) struct GameplaySession {
     soccer_match: Match,
     result_recorded: bool,
     finished_redirect_seconds: Option<f32>,
+    left_player_bindings: PlayerBindings,
+    right_player_bindings: Option<PlayerBindings>,
 }
 
 const MATCH_FINISHED_REDIRECT_DURATION: f32 = 3.0;
 
 impl GameplaySession {
-    pub(crate) fn new_for_config(assets: &GameplayAssets, config: MatchConfig) -> Self {
+    pub(crate) fn new_for_config(
+        assets: &GameplayAssets,
+        config: MatchConfig,
+        controls: ControlsConfig,
+    ) -> Self {
         let screen_size = vec2(screen_width(), screen_height());
         let arena = ArenaGeometry::from_screen(screen_size.x, screen_size.y);
         let hud_layout = HudLayout::from_screen(screen_size.x, screen_size.y);
@@ -230,6 +237,8 @@ impl GameplaySession {
         ball.y = spawn.y;
 
         let players = build_players_for_config(assets, config, &arena);
+        let (left_player_bindings, right_player_bindings) =
+            binding_sets_for_mode(config.mode, controls);
 
         Self {
             terrain_texture: assets.terrain_texture.clone(),
@@ -247,6 +256,8 @@ impl GameplaySession {
             soccer_match: Match::new(config.length.seconds()),
             result_recorded: false,
             finished_redirect_seconds: None,
+            left_player_bindings,
+            right_player_bindings,
         }
     }
 
@@ -303,10 +314,19 @@ impl GameplaySession {
 
         let _selected_difficulty = self.match_config.difficulty;
 
+        let left_player_bindings = self.left_player_bindings;
+        let right_player_bindings = self.right_player_bindings;
         for player in &mut self.players {
             match player.control_type {
                 ControlType::IA => ia::handle_ai(player, &self.ball, &self.arena),
-                _ => input::handle_keyboard(player),
+                ControlType::Player1 => input::handle_keyboard(player, &left_player_bindings),
+                ControlType::Player2 => {
+                    if let Some(bindings) = right_player_bindings {
+                        input::handle_keyboard(player, &bindings);
+                    } else {
+                        player.vx = 0.0;
+                    }
+                }
             }
             input::update_animations(player);
             player_physics::apply_physics(player, &self.arena);
@@ -466,6 +486,16 @@ fn control_types_for_mode(mode: MatchMode) -> (ControlType, ControlType) {
     }
 }
 
+fn binding_sets_for_mode(
+    mode: MatchMode,
+    controls: ControlsConfig,
+) -> (PlayerBindings, Option<PlayerBindings>) {
+    match mode {
+        MatchMode::Solo => (controls.solo, None),
+        MatchMode::OneVsOne => (controls.one_vs_one_p1, Some(controls.one_vs_one_p2)),
+    }
+}
+
 fn head_texture_for_side(
     assets: &GameplayAssets,
     profile: PlayerProfile,
@@ -585,6 +615,26 @@ mod tests {
         assert_eq!(
             control_types_for_mode(MatchMode::OneVsOne),
             (ControlType::Player1, ControlType::Player2)
+        );
+    }
+
+    #[test]
+    fn solo_uses_solo_bindings_only() {
+        let controls = ControlsConfig::default();
+
+        assert_eq!(
+            binding_sets_for_mode(MatchMode::Solo, controls),
+            (controls.solo, None)
+        );
+    }
+
+    #[test]
+    fn one_vs_one_uses_distinct_player_bindings() {
+        let controls = ControlsConfig::default();
+
+        assert_eq!(
+            binding_sets_for_mode(MatchMode::OneVsOne, controls),
+            (controls.one_vs_one_p1, Some(controls.one_vs_one_p2))
         );
     }
 

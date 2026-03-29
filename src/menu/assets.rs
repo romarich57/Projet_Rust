@@ -9,6 +9,7 @@ pub(crate) struct MenuAssets {
     pub(crate) play_button: Texture2D,
     pub(crate) scoreboard_button: Texture2D,
     pub(crate) quit_button: Texture2D,
+    pub(crate) settings_icon: Texture2D,
 }
 
 impl MenuAssets {
@@ -22,6 +23,7 @@ impl MenuAssets {
             scoreboard_button: load_processed_texture("src/assets/menu/scoreboard.png", false)
                 .await?,
             quit_button: load_processed_texture("src/assets/menu/quitter.png", true).await?,
+            settings_icon: load_processed_texture("src/assets/menu/parametre_1.png", false).await?,
         })
     }
 }
