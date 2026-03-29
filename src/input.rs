@@ -19,7 +19,7 @@ fn bindings_for_control(control_type: ControlType) -> Option<(KeyCode, KeyCode, 
 }
 
 pub fn handle_keyboard(player: &mut Player) {
-    let speed = 3.0;
+    let speed = 4.0;
 
     let (left_key, right_key, jump_key, shoot_key) = match bindings_for_control(player.control_type)
     {
@@ -41,7 +41,7 @@ pub fn handle_keyboard(player: &mut Player) {
 
     // Jump
     if is_key_pressed(jump_key) && player.jump_count < 2 {
-        player.vy = if player.jump_count == 0 { -10.0 } else { -8.0 };
+        player.vy = if player.jump_count == 0 { -14.0 } else { -11.0 };
         player.jump_count += 1;
     }
 

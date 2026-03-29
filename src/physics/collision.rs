@@ -13,18 +13,41 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     if let Some((nx, ny, penetration)) =
         rect_circle_collision(head_x, head_y, head_w, head_h, bcx, bcy, bcr)
     {
-        // Separate shapes to avoid sticky overlap.
+        
         ball.x += nx * penetration;
         ball.y += ny * penetration;
 
-        let force = 3.0;
-        ball.vx += nx * force + player.vx * 0.30;
 
-        // Always add slight upward lift on body contact.
-        ball.vy += ny * force + player.vy * 0.15;
-        ball.vy -= 1.2;
-        if ball.vy > -2.6 {
-            ball.vy = -2.6;
+        let head_center_x = head_x + head_w * 0.5;
+        
+    
+        let hit_offset_x = (bcx - head_center_x) / (head_w * 0.5);
+
+    
+        if ny < -0.3 { 
+            // Rebond vertical basique
+            ball.vy = -ball.vy.abs() * 0.7;
+            
+            // Si le joueur est en train de monter (saut), on tape plus fort vers le haut
+            if player.vy < 0.0 {
+                ball.vy += player.vy * 0.5;
+            }
+
+    
+            let direction_force = 5.0; // Puissance de la déviation
+            ball.vx += hit_offset_x * direction_force;
+            
+            // On rajoute un peu de l'élan du joueur
+            ball.vx += player.vx * 0.4;
+        } 
+        
+        else {
+            let force = 4.0;
+    
+            ball.vx += nx * force + player.vx * 0.5;
+            ball.vy += ny * force + player.vy * 0.15;
+            
+            ball.vy -= 1.5; 
         }
     }
 
@@ -76,17 +99,20 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         if let Some((nx, ny, penetration)) =
             rect_circle_collision(body_x, body_y, body_w, body_h, bcx, bcy, bcr)
         {
-            // Push ball fully out of the body
             ball.x += nx * penetration;
             ball.y += ny * penetration;
 
-            // Gentle deflection: mostly sideways, slight upward lift
-            let deflect_force = 2.5;
-            ball.vx += nx * deflect_force + player.vx * 0.25;
-            ball.vy += ny * deflect_force * 0.5;
-            ball.vy -= 0.8;
-            if ball.vy > -1.5 {
-                ball.vy = -1.5;
+           
+            if ny < -0.5 {
+                ball.vy = -ball.vy.abs() * 0.6; // Rebond un peu plus mou que la tête
+            } 
+            // Si le ballon tape le torse de face 
+            else {
+                
+                let deflect_force = 1.5;
+                ball.vx += nx * deflect_force + player.vx * 0.25;
+                
+                ball.vy += ny * deflect_force * 0.5;
             }
         }
     }

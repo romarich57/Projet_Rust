@@ -78,12 +78,14 @@ pub fn apply_ball_physics(ball: &mut Ball, arena: &ArenaGeometry) {
 }
 
 fn resolve_goal_collisions(ball: &mut Ball, goal: GoalGeometry) {
-    resolve_goal_rect_collision(ball, goal.crossbar_rect, true);
-    for rect in [goal.back_post_rect, goal.field_post_tip_rect, goal.goal_floor_rect] {
-        resolve_goal_rect_collision(ball, rect, false);
-    }
+    // On active le rebond de sécurité pour TOUT le toit de la cage (transversale ET poteau arrière)
+    resolve_goal_rect_collision(ball, goal.crossbar_rect, true, goal.side);
+    resolve_goal_rect_collision(ball, goal.back_post_rect, true, goal.side); // Passé à true !
+    
+    // Le bout du poteau et le sol restent normaux
+    resolve_goal_rect_collision(ball, goal.field_post_tip_rect, false, goal.side);
+    resolve_goal_rect_collision(ball, goal.goal_floor_rect, false, goal.side);
 }
-
 fn enforce_goal_retention(ball: &mut Ball, goal: GoalGeometry) {
     let (center_x, center_y, radius) = ball.circle_hitbox();
     let center = vec2(center_x, center_y);
@@ -124,7 +126,7 @@ fn retained_ball_state(
     }
 }
 
-fn resolve_goal_rect_collision(ball: &mut Ball, rect: Rect, is_crossbar: bool) {
+fn resolve_goal_rect_collision(ball: &mut Ball, rect: Rect, is_top_bounce_active: bool, side: crate::match_arena::GoalSide) {
     if let Some((normal, penetration)) = circle_rect_collision(ball, rect) {
         ball.x += normal.x * penetration;
         ball.y += normal.y * penetration;
@@ -137,13 +139,15 @@ fn resolve_goal_rect_collision(ball: &mut Ball, rect: Rect, is_crossbar: bool) {
             ball.vx *= 0.98;
         }
 
-        if is_crossbar {
+        // Si la collision a lieu sur le haut de la cage
+        if is_top_bounce_active {
             let (center_x, center_y, radius) = ball.circle_hitbox();
             if let Some((corrected_center, corrected_velocity)) = crossbar_top_bounce_state(
                 vec2(center_x, center_y),
                 radius,
                 vec2(ball.vx, ball.vy),
                 rect,
+                side,
             ) {
                 ball.x = corrected_center.x - ball.hitbox.offset_x;
                 ball.y = corrected_center.y - ball.hitbox.offset_y;
@@ -158,24 +162,25 @@ fn crossbar_top_bounce_state(
     center: Vec2,
     radius: f32,
     velocity: Vec2,
-    crossbar_rect: Rect,
+    top_rect: Rect,
+    side: crate::match_arena::GoalSide,
 ) -> Option<(Vec2, Vec2)> {
-    if !rect_circle_overlap(crossbar_rect, center, radius) {
+    if !rect_circle_overlap(top_rect, center, radius) {
         return None;
     }
 
-    let touching_from_above = center.y <= crossbar_rect.y + crossbar_rect.h * 0.5;
+    let touching_from_above = center.y <= top_rect.y + top_rect.h * 0.5;
     if !touching_from_above {
         return None;
     }
 
-    let corrected_center = vec2(center.x, crossbar_rect.y - radius - CROSSBAR_TOP_EPSILON);
+    let corrected_center = vec2(center.x, top_rect.y - radius - CROSSBAR_TOP_EPSILON);
     let rebound_vy = -velocity.y.abs().max(CROSSBAR_MIN_REBOUND_SPEED);
+    
     let rebound_vx = if velocity.x.abs() < CROSSBAR_STATIC_ESCAPE_VX {
-        let horizontal_direction = if center.x <= crossbar_rect.center().x {
-            -1.0
-        } else {
-            1.0
+        let horizontal_direction = match side {
+            crate::match_arena::GoalSide::Left => 1.0, // But gauche -> pousse vers la droite
+            crate::match_arena::GoalSide::Right => -1.0, // But droit -> pousse vers la gauche
         };
         horizontal_direction * CROSSBAR_STATIC_ESCAPE_VX
     } else {
@@ -270,6 +275,7 @@ mod tests {
             12.0,
             vec2(0.0, 0.0),
             arena.left_goal.crossbar_rect,
+            crate::match_arena::GoalSide::Left,
         )
         .unwrap();
 
