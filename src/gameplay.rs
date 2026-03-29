@@ -312,13 +312,20 @@ impl GameplaySession {
                 .unwrap_or(SceneCommand::None);
         }
 
-        let _selected_difficulty = self.match_config.difficulty;
+        let selected_difficulty = match self.match_config.difficulty.unwrap_or(BotDifficulty::Normal)
+        {
+            BotDifficulty::Easy => ia::Difficulty::Easy,
+            BotDifficulty::Normal => ia::Difficulty::Normal,
+            BotDifficulty::Hard => ia::Difficulty::Hard,
+        };
 
         let left_player_bindings = self.left_player_bindings;
         let right_player_bindings = self.right_player_bindings;
         for player in &mut self.players {
             match player.control_type {
-                ControlType::IA => ia::handle_ai(player, &self.ball, &self.arena),
+                ControlType::IA => {
+                    ia::handle_ai(player, &self.ball, &self.arena, selected_difficulty)
+                }
                 ControlType::Player1 => input::handle_keyboard(player, &left_player_bindings),
                 ControlType::Player2 => {
                     if let Some(bindings) = right_player_bindings {
