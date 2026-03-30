@@ -1,0 +1,126 @@
+{
+  "solo_bot_wins": 16,
+  "solo_bot_losses": 20,
+  "matches": [
+    {
+      "mode": "Solo",
+      "left_score": 10,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774889287
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774889098
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 7,
+      "recorded_at_unix_secs": 1774888929
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774884419
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774884158
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774884084
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774883666
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774883567
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774882187
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774798190
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 0,
+      "recorded_at_unix_secs": 1774797985
+    },
+    {
+      "mode": "Solo",
+      "left_score": 0,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774797681
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774797448
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774797374
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774797300
+    },
+    {
+      "mode": "Solo",
+      "left_score": 5,
+      "right_score": 2,
+      "recorded_at_unix_secs": 1774797220
+    },
+    {
+      "mode": "Solo",
+      "left_score": 1,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774797140
+    },
+    {
+      "mode": "Solo",
+      "left_score": 5,
+      "right_score": 1,
+      "recorded_at_unix_secs": 1774796900
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 3,
+      "recorded_at_unix_secs": 1774790756
+    },
+    {
+      "mode": "Solo",
+      "left_score": 2,
+      "right_score": 4,
+      "recorded_at_unix_secs": 1774790040
+    }
+  ]
+}

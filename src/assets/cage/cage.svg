@@ -1,0 +1,61 @@
+<svg width="80" height="120" viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pipeVertical" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8d2dd"/>
+      <stop offset="0.18" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#eef4fb"/>
+      <stop offset="0.74" stop-color="#c3ccd8"/>
+      <stop offset="1" stop-color="#fbfdff"/>
+    </linearGradient>
+    <linearGradient id="pipeHorizontal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#edf3fa"/>
+      <stop offset="1" stop-color="#c2ccd7"/>
+    </linearGradient>
+    <linearGradient id="netBackdrop" x1="40" y1="10" x2="40" y2="111">
+      <stop offset="0" stop-color="#f7fbff" stop-opacity="0.20"/>
+      <stop offset="0.45" stop-color="#dde7f1" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#8fa3bb" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="netDepth" x1="40" y1="10" x2="40" y2="111">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="0.6" stop-color="#e5edf6" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#8094ae" stop-opacity="0.16"/>
+    </linearGradient>
+    <pattern id="netPattern" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M0 0 L8 8 M8 0 L0 8" stroke="#f3f8fd" stroke-opacity="0.72" stroke-width="0.78"/>
+    </pattern>
+    <clipPath id="goalOpening">
+      <rect x="10" y="10" width="60" height="101" rx="1.5"/>
+    </clipPath>
+  </defs>
+
+  <g opacity="0.38">
+    <rect x="12" y="12" width="56" height="95" rx="1.5" fill="none" stroke="#8696aa" stroke-width="1.5"/>
+    <path d="M18 18 V104 M31 14 V107 M49 14 V107 M62 18 V104" stroke="#a2b0c1" stroke-opacity="0.34" stroke-width="0.9"/>
+    <path d="M13 31 H67 M12 54 H68 M12 77 H68" stroke="#a2b0c1" stroke-opacity="0.22" stroke-width="0.9"/>
+  </g>
+
+  <g clip-path="url(#goalOpening)">
+    <rect x="10" y="10" width="60" height="101" fill="url(#netBackdrop)"/>
+    <rect x="10" y="10" width="60" height="101" fill="url(#netPattern)"/>
+    <rect x="10" y="10" width="60" height="101" fill="url(#netDepth)"/>
+  </g>
+
+  <g opacity="0.22">
+    <rect x="4.8" y="5.0" width="6.2" height="110.5" rx="3.1" fill="#66717f"/>
+    <rect x="69.0" y="5.0" width="6.2" height="110.5" rx="3.1" fill="#66717f"/>
+    <rect x="4.8" y="5.0" width="70.4" height="6.2" rx="3.1" fill="#66717f"/>
+    <rect x="5.6" y="112.0" width="68.8" height="4.0" rx="2.0" fill="#66717f"/>
+  </g>
+
+  <rect x="4.5" y="4.5" width="6.0" height="111.0" rx="3.0" fill="url(#pipeVertical)" stroke="#dce5ee" stroke-width="0.6"/>
+  <rect x="69.5" y="4.5" width="6.0" height="111.0" rx="3.0" fill="url(#pipeVertical)" stroke="#dce5ee" stroke-width="0.6"/>
+  <rect x="4.5" y="4.5" width="71.0" height="6.0" rx="3.0" fill="url(#pipeHorizontal)" stroke="#dce5ee" stroke-width="0.6"/>
+  <rect x="5.2" y="112.2" width="69.6" height="3.8" rx="1.9" fill="url(#pipeHorizontal)" stroke="#dce5ee" stroke-width="0.45"/>
+
+  <rect x="6.0" y="6.1" width="1.0" height="106.5" rx="0.5" fill="#ffffff" fill-opacity="0.60"/>
+  <rect x="71.0" y="6.1" width="1.0" height="106.5" rx="0.5" fill="#ffffff" fill-opacity="0.42"/>
+  <rect x="7.0" y="6.0" width="66.0" height="1.0" rx="0.5" fill="#ffffff" fill-opacity="0.58"/>
+  <rect x="7.5" y="112.9" width="64.8" height="0.7" rx="0.35" fill="#ffffff" fill-opacity="0.45"/>
+</svg>

@@ -1,5 +1,7 @@
-use macroquad::prelude::*; 
-// Macroquad provides rendering, input and timing for this 2D game.
+use macroquad::prelude::*;
+// Macroquad provides rendering, input and timing 
+
+pub(crate) const MAX_KICK_ANGLE: f32 = 1.05;
 
 #[derive(Clone, Copy)]
 pub struct HitboxRect {
@@ -9,10 +11,7 @@ pub struct HitboxRect {
     pub height: f32,
 }
 
-// Auto-derive common traits:
-// - Copy/Clone: allow cheap duplication (no move semantics issues)
-// - Debug: enables {:?} printing
-// - PartialEq/Eq: enables == comparisons
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ControlType {
     Player1,
@@ -39,15 +38,26 @@ pub struct Player {
     pub foot_hitbox: HitboxRect,
     pub head_hitbox: HitboxRect,
     pub control_type: ControlType,
-    pub side: i32, // -1 for left player, +1 for right player to determine facing direction
+    pub side: i32, // -1 for left-side player facing right, +1 for right-side player facing left
+    foot_ground_contact_ratio: f32,
+    foot_pivot_from_back_x_ratio: f32,
+    foot_pivot_y_ratio: f32,
 }
 
 impl Player {
-    
-    pub fn new(x: f32, y: f32, tex_t: Texture2D, tex_p: Texture2D, control_type: ControlType, side: i32) -> Self {
+    pub fn new(
+        x: f32,
+        y: f32,
+        tex_t: Texture2D,
+        tex_p: Texture2D,
+        control_type: ControlType,
+        side: i32,
+    ) -> Self {
         Self {
-            x, y,
-            vx: 0.0, vy: 0.0,
+            x,
+            y,
+            vx: 0.0,
+            vy: 0.0,
             jump_count: 0,
             foot_angle: 0.0,
             is_shooting: false,
@@ -57,7 +67,7 @@ impl Player {
             foot_height: 85.0,
             head_width: 200.0,
             head_height: 170.0,
-            head_offset_x: 5.0,
+            head_offset_x: 5.0 ,
             head_offset_y: -95.0,
             foot_hitbox: HitboxRect {
                 offset_x: 45.0,
@@ -73,50 +83,15 @@ impl Player {
             },
             control_type: control_type,
             side: side,
+            foot_ground_contact_ratio: 0.72,
+            foot_pivot_from_back_x_ratio: 0.18,
+            foot_pivot_y_ratio: 0.58,
         }
-    }
-
-    pub fn apply_relative_screen_size(&mut self, screen_width: f32, screen_height: f32) {
-        let target_width = screen_width * 0.20;
-        let target_height = screen_height * 0.20;
-
-        let base_foot_width: f32 = 200.0;
-        let base_foot_height: f32 = 85.0;
-        let base_head_width: f32 = 200.0;
-        let base_head_height: f32 = 170.0;
-        let base_head_offset_x: f32 = 5.0;
-        let base_head_offset_y: f32 = -95.0;
-
-        let base_collision_width = base_foot_width.max(base_head_offset_x + base_head_width);
-        let base_total_height = base_foot_height - base_head_offset_y;
-
-        let scale = (target_width / base_collision_width)
-            .min(target_height / base_total_height);
-
-        self.foot_width = base_foot_width * scale;
-        self.foot_height = base_foot_height * scale;
-
-        self.head_width = base_head_width * scale;
-        self.head_height = base_head_height * scale;
-
-        self.head_offset_x = base_head_offset_x * scale;
-        self.head_offset_y = base_head_offset_y * scale;
-
-        self.foot_hitbox.offset_x = 45.0 * scale;
-        self.foot_hitbox.offset_y = 20.0 * scale;
-        self.foot_hitbox.width = 120.0 * scale;
-        self.foot_hitbox.height = 55.0 * scale;
-
-        self.head_hitbox.offset_x = 55.0 * scale;
-        self.head_hitbox.offset_y = 10.0 * scale;
-        self.head_hitbox.width = 90.0 * scale;
-        self.head_hitbox.height = 110.0 * scale;
     }
 
     pub fn foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         let mut ox = self.foot_hitbox.offset_x;
-        // Flip the offset if looking left (side == 1)
-        if self.side == 1 {
+        if self.faces_left() {
             ox = self.foot_width - ox - self.foot_hitbox.width;
         }
         (
@@ -129,20 +104,20 @@ impl Player {
 
     pub fn active_foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         let mut ox = self.foot_hitbox.offset_x;
-        if self.side == 1 {
+        if self.faces_left() {
             ox = self.foot_width - ox - self.foot_hitbox.width;
         }
-        
+
         let mut hx = self.x + ox;
         let mut hy = self.y + self.foot_hitbox.offset_y;
         let mut hw = self.foot_hitbox.width;
         let mut hh = self.foot_hitbox.height;
 
         // During a kick, move and stretch the foot hitbox to match the animation.
-        let shot_progress = (-self.foot_angle).clamp(0.0, 1.0);
+        let shot_progress = self.shot_progress();
         if shot_progress > 0.05 {
             // Forward movement depends on facing direction
-            if self.side == -1 {
+            if self.faces_right() {
                 hx += hw * 0.38 * shot_progress; // kick right
             } else {
                 hx -= hw * 0.38 * shot_progress; // kick left
@@ -157,7 +132,7 @@ impl Player {
 
     pub fn head_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         let mut ox = self.head_hitbox.offset_x;
-        if self.side == 1 {
+        if self.faces_left() {
             ox = self.head_width - ox - self.head_hitbox.width;
         }
         (
@@ -202,11 +177,49 @@ impl Player {
         self.head_hitbox.height = height;
     }
 
+    pub fn set_foot_visual_anchor(
+        &mut self,
+        ground_contact_ratio: f32,
+        pivot_from_back_x_ratio: f32,
+        pivot_y_ratio: f32,
+    ) {
+        self.foot_ground_contact_ratio = ground_contact_ratio;
+        self.foot_pivot_from_back_x_ratio = pivot_from_back_x_ratio;
+        self.foot_pivot_y_ratio = pivot_y_ratio;
+    }
+
     pub fn collision_width(&self) -> f32 {
         self.foot_width.max(self.head_offset_x + self.head_width)
     }
 
     pub fn y_at_ground(&self, ground_y: f32) -> f32 {
-        ground_y - self.foot_height + self.foot_height * 0.3
+        ground_y - self.foot_height * self.foot_ground_contact_ratio
+    }
+
+    #[allow(dead_code)]
+    pub fn foot_contact_y(&self, ground_y: f32) -> f32 {
+        self.y_at_ground(ground_y) + self.foot_height * self.foot_ground_contact_ratio
+    }
+
+    pub fn foot_pivot_screen_pos(&self) -> Vec2 {
+        let pivot_x = if self.faces_right() {
+            self.x + self.foot_width * self.foot_pivot_from_back_x_ratio
+        } else {
+            self.x + self.foot_width * (1.0 - self.foot_pivot_from_back_x_ratio)
+        };
+
+        vec2(pivot_x, self.y + self.foot_height * self.foot_pivot_y_ratio)
+    }
+
+    pub fn shot_progress(&self) -> f32 {
+        (self.foot_angle.abs() / MAX_KICK_ANGLE).clamp(0.0, 1.0)
+    }
+
+    pub fn faces_left(&self) -> bool {
+        self.side > 0
+    }
+
+    pub fn faces_right(&self) -> bool {
+        self.side < 0
     }
 }
