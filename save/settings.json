@@ -1,0 +1,22 @@
+{
+  "controls": {
+    "solo": {
+      "move_left": "Left",
+      "move_right": "Right",
+      "jump": "Up",
+      "shoot": "Space"
+    },
+    "one_vs_one_p1": {
+      "move_left": "Q",
+      "move_right": "D",
+      "jump": "Z",
+      "shoot": "S"
+    },
+    "one_vs_one_p2": {
+      "move_left": "Left",
+      "move_right": "Right",
+      "jump": "Up",
+      "shoot": "L"
+    }
+  }
+}

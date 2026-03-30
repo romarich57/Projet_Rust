@@ -1,52 +1,54 @@
 use crate::models::ball::Ball;
 use crate::models::player::Player;
 
-/// Player-ball collision:
-/// - head/body contact (light impulse)
-/// - shooting foot contact (strong impulse)
+
 pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
     let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
 
     let (bcx, bcy, bcr) = ball.circle_hitbox();
 
-    if let Some((nx, ny, penetration)) = rect_circle_collision(
-        head_x,
-        head_y,
-        head_w,
-        head_h,
-        bcx,
-        bcy,
-        bcr,
-    ) {
-        // Separate shapes to avoid sticky overlap.
+    if let Some((nx, ny, penetration)) =
+        rect_circle_collision(head_x, head_y, head_w, head_h, bcx, bcy, bcr)
+    {
         ball.x += nx * penetration;
         ball.y += ny * penetration;
 
-        let force = 3.0;
-        ball.vx += nx * force + player.vx * 0.30;
+        let head_center_x = head_x + head_w * 0.5;
 
-        // Always add slight upward lift on body contact.
-        ball.vy += ny * force + player.vy * 0.15;
-        ball.vy -= 1.2;
-        if ball.vy > -2.6 {
-            ball.vy = -2.6;
+        let hit_offset_x = (bcx - head_center_x) / (head_w * 0.5);
+
+        if ny < -0.3 {
+            // Rebond vertical basique
+            ball.vy = -ball.vy.abs() * 0.7;
+
+            // Si le joueur est en train de monter (saut), on tape plus fort vers le haut
+            if player.vy < 0.0 {
+                ball.vy += player.vy * 0.5;
+            }
+
+            let direction_force = 5.0; // Puissance de la déviation
+            ball.vx += hit_offset_x * direction_force;
+
+            // On rajoute un peu de l'élan du joueur
+            ball.vx += player.vx * 0.4;
+        } else {
+            let force = 4.0;
+
+            ball.vx += nx * force + player.vx * 0.8;
+            ball.vy += ny * force + player.vy * 0.4;
+
+            ball.vy -= 1.5;
         }
     }
 
-    if let Some((nx, ny, penetration)) = rect_circle_collision(
-        foot_x,
-        foot_y,
-        foot_w,
-        foot_h,
-        bcx,
-        bcy,
-        bcr,
-    ) {
+    if let Some((nx, ny, penetration)) =
+        rect_circle_collision(foot_x, foot_y, foot_w, foot_h, bcx, bcy, bcr)
+    {
         ball.x += nx * penetration;
         ball.y += ny * penetration;
 
-        let shot_progress = (-player.foot_angle).clamp(0.0, 1.0);
+        let shot_progress = player.shot_progress();
         let in_shot_phase = player.is_shooting || shot_progress > 0.22;
 
         if in_shot_phase {
@@ -54,11 +56,13 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
             let contact_y = ((bcy - foot_y) / foot_h).clamp(0.0, 1.0);
             let lob_bonus = (1.0 - contact_y) * 0.35;
 
-            let dir_x = if nx.abs() > 0.05 { nx } else { -1.0 };
+            // Kick direction depends on which player is kicking
+            let expected_dir = -player.side as f32; // -1 -> 1 (Right), 1 -> -1 (Left)
+            let dir_x = if nx.abs() > 0.05 { nx } else { expected_dir };
             let dir_y = -(0.35 + 0.70 * shot_progress + lob_bonus);
 
-            let force = 8.5 + 6.5 * shot_progress;
-            let speed_transfer = player.vx * 0.45;
+            let force = 12.0 + 8.0 * shot_progress;
+            let speed_transfer = player.vx * 0.70;
 
             ball.vx += dir_x * force + speed_transfer;
             ball.vy += dir_y * force + player.vy * 0.10;
@@ -77,6 +81,28 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
             ball.vx += nx * soft_force + player.vx * 0.20;
             ball.vy += ny * (soft_force * 0.55);
             ball.vy -= 0.35;
+        }
+    }
+
+    // Body collision: covers the torso between head and feet.
+    let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
+    if body_h > 0.0 {
+        if let Some((nx, ny, penetration)) =
+            rect_circle_collision(body_x, body_y, body_w, body_h, bcx, bcy, bcr)
+        {
+            ball.x += nx * penetration;
+            ball.y += ny * penetration;
+
+            if ny < -0.5 {
+                ball.vy = -ball.vy.abs() * 0.6; // Rebond un peu plus mou que la tête
+            }
+            // Si le ballon tape le torse de face
+            else {
+                let deflect_force = 1.5;
+                ball.vx += nx * deflect_force + player.vx * 0.25;
+
+                ball.vy += ny * deflect_force * 0.5;
+            }
         }
     }
 
@@ -142,5 +168,46 @@ fn limit_ball_speed(ball: &mut Ball, vmax: f32) {
         let scale = vmax / speed;
         ball.vx *= scale;
         ball.vy *= scale;
+    }
+}
+
+pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
+
+    let top1 = p1.head_hitbox_rect().1;
+    let bottom1 = p1.foot_hitbox_rect().1 + p1.foot_hitbox_rect().3;
+
+    let top2 = p2.head_hitbox_rect().1;
+    let bottom2 = p2.foot_hitbox_rect().1 + p2.foot_hitbox_rect().3;
+
+    // Only apply horizontal collision if players are roughly at the same vertical level.
+    if bottom1 < top2 + 15.0 || bottom2 < top1 + 15.0 {
+        return; 
+    }
+    let hw1 = p1.collision_width() / 3.0;
+    let hw2 = p2.collision_width() / 3.0;
+
+    let c1 = p1.x + hw1;
+    let c2 = p2.x + hw2;
+
+    let dx = c2 - c1;
+    let min_dist = hw1 + hw2 - 1.0; // small leniency
+
+    if dx.abs() < min_dist {
+        let overlap = min_dist - dx.abs();
+        let push = overlap / 2.0;
+
+        if dx > 0.0 {
+            // p2 is mostly to the right
+            p1.x -= push;
+            p2.x += push;
+        } else {
+            // p2 is mostly to the left
+            p1.x += push;
+            p2.x -= push;
+        }
+
+        let avg_vx = (p1.vx + p2.vx) * 0.5;
+        p1.vx = avg_vx;
+        p2.vx = avg_vx;
     }
 }

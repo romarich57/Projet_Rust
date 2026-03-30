@@ -1,77 +1,28 @@
-use macroquad::prelude::*;
+use crate::arcade_ui::draw_cover_texture;
+use crate::game::{GameState, Match};
+use crate::match_arena::ArenaGeometry;
 use crate::models::ball::Ball;
 use crate::models::player::Player;
-use crate::game::{self, GameState, Match};
+use macroquad::prelude::*;
 
-
-fn draw_score(game_match: &Match) {
-    let score_text = format!("{}  -  {}", game_match.score_p1, game_match.score_p2);
-    let font_size = 75.0; 
-    let text_params = measure_text(&score_text, None, font_size as u16, 1.0);
-    
-
-    let box_width = text_params.width + 100.0;
-    let box_height = text_params.height + 30.0;
-    let box_x = screen_width() / 2.0 - box_width / 2.0;
-    let box_y = 10.0;
-
-
-    draw_rectangle(
-        box_x + 5.0, box_y + 5.0, 
-        box_width, box_height, 
-        Color::new(0.0, 0.0, 0.0, 0.4)
+pub fn draw_all(
+    players: &[Player],
+    terrain_texture: &Texture2D,
+    goal_texture: &Texture2D,
+    arena: &ArenaGeometry,
+    ball: &Ball,
+    debug_hitbox: bool,
+    game_match: &Match,
+    finished_redirect_seconds: Option<f32>,
+) {
+    draw_cover_texture(
+        terrain_texture,
+        Rect::new(0.0, 0.0, arena.screen_width, arena.screen_height),
     );
-    
- 
-    draw_rectangle(
-        box_x, box_y, 
-        box_width, box_height, 
-        Color::new(0.15, 0.15, 0.15, 1.0)
-    );
-    
-
-    draw_rectangle_lines(
-        box_x, box_y, 
-        box_width, box_height, 
-        4.0, // Épaisseur du trait
-        Color::new(0.7, 0.7, 0.7, 1.0)
-    );
-
-  
-    let text_x = screen_width() / 2.0 - text_params.width / 2.0;
-    let text_y = box_y + text_params.height + 8.0;
-
-   
-    draw_text(&score_text, text_x + 3.0, text_y + 3.0, font_size, BLACK);
-    
-    
-    draw_text(&score_text, text_x, text_y, font_size, WHITE);
-
-    //animation de but
-    if let GameState::GoalScored { .. } = game_match.state {
-        let goal_text = "GOAL !";
-        let goal_size = 140.0; 
-        let goal_params = measure_text(goal_text, None, goal_size as u16, 1.0);
-        
-        let text_x = screen_width() / 2.0 - goal_params.width / 2.0;
-        let text_y = screen_height() / 2.0 + goal_params.height / 2.0 - 50.0;
-
-        // Ombre portée très marquée pour le GOAL
-        draw_text(goal_text, text_x + 8.0, text_y + 8.0, goal_size, BLACK);
-        draw_text(goal_text, text_x, text_y, goal_size, YELLOW);
-    }
-}
-
-
-pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug_hitbox: bool, game_match: &Match) {
-    draw_texture_ex(stadium_texture, 0.0, 0.0, WHITE, DrawTextureParams {
-        dest_size: Some(vec2(screen_width(), screen_height())),
-        ..Default::default()
-    });
 
     draw_texture_ex(
         &ball.texture,
-        ball.x - ball.visual_radius(), 
+        ball.x - ball.visual_radius(),
         ball.y - ball.visual_radius(),
         WHITE,
         DrawTextureParams {
@@ -81,21 +32,60 @@ pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug
         },
     );
 
+    for player in players {
+        draw_player(player);
+    }
+
+    draw_goal_texture(goal_texture, arena.left_goal.draw_rect, false);
+    draw_goal_texture(goal_texture, arena.right_goal.draw_rect, true);
+
+    draw_state_overlay(game_match, finished_redirect_seconds);
+
+    if debug_hitbox {
+        draw_goal_debug(arena.left_goal);
+        draw_goal_debug(arena.right_goal);
+        for player in players {
+            draw_debug_hitbox(player, ball);
+        }
+        draw_text("DEBUG HITBOX (Y)", 15.0, 30.0, 26.0, YELLOW);
+    }
+}
+
+fn draw_goal_texture(texture: &Texture2D, rect: Rect, flip_x: bool) {
+    draw_texture_ex(
+        texture,
+        rect.x,
+        rect.y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(vec2(rect.w, rect.h)),
+            flip_x,
+            ..Default::default()
+        },
+    );
+}
+
+fn draw_player(player: &Player) {
+    let foot_draw_x = player.x;
+    let foot_pivot = player.foot_pivot_screen_pos();
     draw_texture_ex(
         &player.foot_texture,
-        player.x,
+        foot_draw_x,
         player.y,
         WHITE,
         DrawTextureParams {
             dest_size: Some(vec2(player.foot_width, player.foot_height)),
             rotation: player.foot_angle,
+            flip_x: player.faces_right(),
+            pivot: Some(foot_pivot),
             ..Default::default()
         },
     );
 
+    let head_draw_x = player.x + player.head_offset_x;
     draw_texture_ex(
         &player.head_texture,
-        player.x + player.head_offset_x,
+        head_draw_x,
         player.y + player.head_offset_y,
         WHITE,
         DrawTextureParams {
@@ -103,27 +93,149 @@ pub fn draw_all(player: &Player, stadium_texture: &Texture2D, ball: &Ball, debug
             ..Default::default()
         },
     );
+}
 
-    draw_score(game_match);
+fn draw_state_overlay(game_match: &Match, finished_redirect_seconds: Option<f32>) {
+    match game_match.state {
+        GameState::GoalScored { .. } => {
+            let goal_text = "GOAL !";
+            let goal_size = 140.0;
+            let goal_params = measure_text(goal_text, None, goal_size as u16, 1.0);
 
-    if debug_hitbox {
-        draw_debug_hitbox(player, ball);
+            let text_x = screen_width() / 2.0 - goal_params.width / 2.0;
+            let text_y = screen_height() / 2.0 + goal_params.height / 2.0 - 30.0;
+
+            draw_text(goal_text, text_x + 8.0, text_y + 8.0, goal_size, BLACK);
+            draw_text(goal_text, text_x, text_y, goal_size, YELLOW);
+        }
+        GameState::Finished => {
+            draw_rectangle(
+                0.0,
+                0.0,
+                screen_width(),
+                screen_height(),
+                Color::new(0.0, 0.0, 0.0, 0.42),
+            );
+
+            let title = "FIN DU MATCH";
+            let subtitle = format!(
+                "Score final: {} - {}",
+                game_match.score_p1, game_match.score_p2
+            );
+            let countdown_value = finished_redirect_seconds.map(countdown_display_from_seconds);
+            let redirect_text = finished_redirect_seconds.map(|seconds| {
+                format!(
+                    "Redirection vers le menu dans {}...",
+                    countdown_display_from_seconds(seconds)
+                )
+            });
+            let title_size = 84.0;
+            let subtitle_size = 34.0;
+            let countdown_size = 96.0;
+            let redirect_size = 28.0;
+
+            let title_metrics = measure_text(title, None, title_size as u16, 1.0);
+            let subtitle_metrics = measure_text(&subtitle, None, subtitle_size as u16, 1.0);
+            let redirect_metrics = redirect_text
+                .as_ref()
+                .map(|text| measure_text(text, None, redirect_size as u16, 1.0));
+
+            let title_x = screen_width() * 0.5 - title_metrics.width * 0.5;
+            let title_y = screen_height() * 0.5 - 38.0;
+            let subtitle_x = screen_width() * 0.5 - subtitle_metrics.width * 0.5;
+            let subtitle_y = title_y + 54.0;
+            let countdown_y = subtitle_y + 80.0;
+
+            draw_text(title, title_x + 5.0, title_y + 5.0, title_size, BLACK);
+            draw_text(
+                title,
+                title_x,
+                title_y,
+                title_size,
+                color_u8!(255, 236, 132, 255),
+            );
+            draw_text(
+                &subtitle,
+                subtitle_x + 2.0,
+                subtitle_y + 2.0,
+                subtitle_size,
+                BLACK,
+            );
+            draw_text(&subtitle, subtitle_x, subtitle_y, subtitle_size, WHITE);
+
+            if let Some(countdown) = countdown_value {
+                let countdown_text = countdown.to_string();
+                let countdown_metrics =
+                    measure_text(&countdown_text, None, countdown_size as u16, 1.0);
+                let countdown_x = screen_width() * 0.5 - countdown_metrics.width * 0.5;
+
+                draw_text(
+                    &countdown_text,
+                    countdown_x + 4.0,
+                    countdown_y + 4.0,
+                    countdown_size,
+                    BLACK,
+                );
+                draw_text(
+                    &countdown_text,
+                    countdown_x,
+                    countdown_y,
+                    countdown_size,
+                    color_u8!(255, 221, 109, 255),
+                );
+            }
+
+            if let (Some(text), Some(metrics)) = (redirect_text, redirect_metrics) {
+                let redirect_x = screen_width() * 0.5 - metrics.width * 0.5;
+                let redirect_y = countdown_y + 48.0;
+                draw_text(
+                    &text,
+                    redirect_x + 2.0,
+                    redirect_y + 2.0,
+                    redirect_size,
+                    BLACK,
+                );
+                draw_text(
+                    &text,
+                    redirect_x,
+                    redirect_y,
+                    redirect_size,
+                    color_u8!(255, 239, 184, 255),
+                );
+            }
+        }
+        GameState::Playing => {}
     }
+}
+
+fn countdown_display_from_seconds(seconds: f32) -> i32 {
+    seconds.ceil().clamp(1.0, 3.0) as i32
 }
 
 fn draw_debug_hitbox(player: &Player, ball: &Ball) {
     let (foot_base_x, foot_base_y, foot_base_w, foot_base_h) = player.foot_hitbox_rect();
     let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
     let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
+    let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
 
     let ball_hitbox = ball.circle_hitbox();
     let ball_cx = ball_hitbox.0;
     let ball_cy = ball_hitbox.1;
     let ball_r = ball_hitbox.2;
 
-    draw_rectangle_lines(foot_base_x, foot_base_y, foot_base_w, foot_base_h, 1.0, PINK);
+    draw_rectangle_lines(
+        foot_base_x,
+        foot_base_y,
+        foot_base_w,
+        foot_base_h,
+        1.0,
+        PINK,
+    );
     draw_rectangle_lines(foot_x, foot_y, foot_w, foot_h, 2.0, RED);
     draw_rectangle_lines(head_x, head_y, head_w, head_h, 2.0, ORANGE);
+    if body_h > 0.0 {
+        draw_rectangle_lines(body_x, body_y, body_w, body_h, 2.0, BLUE);
+    }
     draw_rectangle_lines(
         ball_cx - ball_r,
         ball_cy - ball_r,
@@ -132,6 +244,27 @@ fn draw_debug_hitbox(player: &Player, ball: &Ball) {
         2.0,
         LIME,
     );
-
-    draw_text("DEBUG HITBOX (Y)", 15.0, 30.0, 26.0, YELLOW);
 }
+
+fn draw_goal_debug(goal: crate::match_arena::GoalGeometry) {
+    for rect in [
+        goal.field_post_tip_rect,
+        goal.back_post_rect,
+        goal.crossbar_rect,
+        goal.goal_floor_rect,
+        goal.goal_cavity_rect,
+        goal.goal_capture_rect,
+    ] {
+        draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 2.0, SKYBLUE);
+    }
+
+    draw_line(
+        goal.mouth_line_x,
+        goal.opening_top_y,
+        goal.mouth_line_x,
+        goal.opening_bottom_y,
+        2.0,
+        YELLOW,
+    );
+}
+
