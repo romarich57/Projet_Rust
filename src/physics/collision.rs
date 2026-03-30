@@ -1,9 +1,7 @@
 use crate::models::ball::Ball;
 use crate::models::player::Player;
 
-/// Player-ball collision:
-/// - head/body contact (light impulse)
-/// - shooting foot contact (strong impulse)
+
 pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
     let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();

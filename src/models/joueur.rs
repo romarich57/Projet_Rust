@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-// Macroquad provides rendering, input and timing for this 2D game.
+// Macroquad provides rendering, input and timing 
 
 pub(crate) const MAX_KICK_ANGLE: f32 = 1.05;
 
@@ -11,10 +11,7 @@ pub struct HitboxRect {
     pub height: f32,
 }
 
-// Auto-derive common traits:
-// - Copy/Clone: allow cheap duplication (no move semantics issues)
-// - Debug: enables {:?} printing
-// - PartialEq/Eq: enables == comparisons
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ControlType {
     Player1,
