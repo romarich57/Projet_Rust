@@ -63,9 +63,9 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         second_jump_velocity,
     ) =
         match difficulty {
-            Difficulty::Easy => (7.5, 2.35, 2.5, 8.0, 0.48, -8.3, -9.0, 0.52, 0.80, -5.0, 0.45, 0.45, 0.20, 0.18, false, -8.0),
-            Difficulty::Normal => (11.0, 2.9, 3.35, 9.5, 0.50, -9.6, -10.7, 0.78, 0.92, -7.5, 0.38, 0.30, 0.35, 0.30, true, -8.8),
-            Difficulty::Hard => (12.0, 3.8, 4.5, 3.0, 0.62, -11.5, -13.0, 0.95, 1.10, -15.0, 0.30, 0.80, 0.30, 0.25, true, -10.5),
+            Difficulty::Easy => (7.5, 3.05, 3.4, 7.0, 0.48, -8.9, -9.7, 0.62, 0.80, -6.0, 0.43, 0.42, 0.24, 0.24, true, -8.5),
+            Difficulty::Normal => (11.0, 2.9, 3.35, 9.5, 0.50, -9.6, -10.7, 0.78, 0.92, -7.5, 0.35, 0.22, 0.45, 0.42, true, -8.8),
+            Difficulty::Hard => (12.0, 3.8, 4.5, 3.0, 0.62, -11.5, -13.0, 0.95, 1.10, -15.0, 0.30, 0.30, 0.70, 0.60, true, -10.5),
         };
 
     let predicted_ball_x = (ball.x + ball.vx * prediction_time).clamp(0.0, field_w); //clamp is used to ensure the predicted position doesn't go beyond the field boundaries
@@ -112,6 +112,18 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         arena.player_right_wall_x - player.collision_width(),
     );
 
+    // Prevent over-commitment when pressing: cap how far into the opponent half the bot can push.
+    let max_forward_push_x = if is_left_side {
+        field_mid + player.collision_width() * engage_range
+    } else {
+        field_mid - player.collision_width() * (engage_range + 1.0)
+    };
+    let safe_attack_x = if is_left_side {
+        attack_x.min(max_forward_push_x)
+    } else {
+        attack_x.max(max_forward_push_x)
+    };
+
     let own_half_x = if is_left_side {
         predicted_ball_x - player.collision_width() * own_half_offset
     } else {
@@ -128,8 +140,8 @@ pub fn handle_ai(player: &mut Player, ball: &Ball, arena: &ArenaGeometry, diffic
         defend_x
     } else if ball_in_own_half {
         own_half_x
-    } else if (ball.x - player_center_x).abs() < field_w * engage_range {
-        attack_x
+    } else if (predicted_ball_x - player_center_x).abs() < field_w * engage_range {
+        safe_attack_x
     } else {
         home_x
     };
