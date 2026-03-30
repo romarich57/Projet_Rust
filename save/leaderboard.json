@@ -1,7 +1,19 @@
 {
   "solo_bot_wins": 16,
-  "solo_bot_losses": 22,
+  "solo_bot_losses": 24,
   "matches": [
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 4,
+      "recorded_at_unix_secs": 1774897241
+    },
+    {
+      "mode": "Solo",
+      "left_score": 3,
+      "right_score": 6,
+      "recorded_at_unix_secs": 1774896966
+    },
     {
       "mode": "Solo",
       "left_score": 0,
@@ -109,18 +121,6 @@
       "left_score": 5,
       "right_score": 2,
       "recorded_at_unix_secs": 1774797220
-    },
-    {
-      "mode": "Solo",
-      "left_score": 1,
-      "right_score": 3,
-      "recorded_at_unix_secs": 1774797140
-    },
-    {
-      "mode": "Solo",
-      "left_score": 5,
-      "right_score": 1,
-      "recorded_at_unix_secs": 1774796900
     }
   ]
 }
