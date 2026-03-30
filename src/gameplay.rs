@@ -543,7 +543,12 @@ fn apply_match_player_tuning(player: &mut Player, arena: &ArenaGeometry) {
     player.foot_height = foot_height;
     player.head_width = head_size;
     player.head_height = head_size;
-    player.head_offset_x = HEAD_OFFSET_X * scale;
+    let base_offset_x = if player.faces_right() {
+        -8.0
+    } else {
+        HEAD_OFFSET_X
+    };
+    player.head_offset_x = base_offset_x * scale;
     player.head_offset_y = HEAD_OFFSET_Y * scale;
     player.set_foot_visual_anchor(
         FOOT_GROUND_CONTACT_RATIO,

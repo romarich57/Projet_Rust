@@ -4,9 +4,9 @@ use crate::physics::{scale_x, scale_y, BALL_GRAVITY_REFERENCE};
 use macroquad::prelude::*;
 use macroquad::time::get_frame_time;
 
-const CROSSBAR_MIN_REBOUND_SPEED: f32 = 2.0;
+const CROSSBAR_MIN_REBOUND_SPEED: f32 = 4.0;
 const CROSSBAR_TOP_EPSILON: f32 = 0.35;
-const CROSSBAR_STATIC_ESCAPE_VX: f32 = 1.5;
+const CROSSBAR_STATIC_ESCAPE_VX: f32 = 4.0;
 
 pub fn apply_ball_physics(ball: &mut Ball, arena: &ArenaGeometry) {
     let dt = get_frame_time().clamp(1.0 / 240.0, 1.0 / 20.0);

@@ -118,12 +118,12 @@ impl Player {
         if shot_progress > 0.05 {
             // Forward movement depends on facing direction
             if self.faces_right() {
-                hx += hw * 0.38 * shot_progress; // kick right
+                hx += hw * 0.60* shot_progress; // kick right
             } else {
-                hx -= hw * 0.38 * shot_progress; // kick left
+                hx -= hw * 0.60 * shot_progress; // kick left
             }
             hy -= hh * 0.20 * shot_progress;
-            hw *= 1.0 + 0.28 * shot_progress;
+            hw *= 1.0 + 0.50 * shot_progress;
             hh *= 1.0 + 0.12 * shot_progress;
         }
 

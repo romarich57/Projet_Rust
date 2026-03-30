@@ -61,8 +61,8 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
             let dir_x = if nx.abs() > 0.05 { nx } else { expected_dir };
             let dir_y = -(0.35 + 0.70 * shot_progress + lob_bonus);
 
-            let force = 8.5 + 6.5 * shot_progress;
-            let speed_transfer = player.vx * 0.45;
+            let force = 12.0 + 8.0 * shot_progress;
+            let speed_transfer = player.vx * 0.70;
 
             ball.vx += dir_x * force + speed_transfer;
             ball.vy += dir_y * force + player.vy * 0.10;
