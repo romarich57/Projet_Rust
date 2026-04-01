@@ -24,7 +24,7 @@ pub struct Player {
     pub y: f32,
     pub vx: f32,
     pub vy: f32,
-    pub jump_count: u8,
+    pub jump_count: u8, // nombre de sauts effectués, aide pour le double saut 
     pub foot_angle: f32,
     pub is_shooting: bool,
     pub head_texture: Texture2D,
@@ -35,8 +35,8 @@ pub struct Player {
     pub head_height: f32,
     pub head_offset_x: f32,
     pub head_offset_y: f32,
-    pub foot_hitbox: HitboxRect,
-    pub head_hitbox: HitboxRect,
+    pub foot_hitbox: HitboxRect, // Hitbox rectangulaire du pied 
+    pub head_hitbox: HitboxRect, // Hitbox rectangulaire de la tête 
     pub control_type: ControlType,
     pub side: i32, // -1 for left-side player facing right, +1 for right-side player facing left
     foot_ground_contact_ratio: f32,
@@ -83,7 +83,7 @@ impl Player {
             },
             control_type: control_type,
             side: side,
-            foot_ground_contact_ratio: 0.72,
+            foot_ground_contact_ratio: 0.72, // Le point de contact du pied avec le sol est à 72% de la hauteur du pied 
             foot_pivot_from_back_x_ratio: 0.18,
             foot_pivot_y_ratio: 0.58,
         }
@@ -102,6 +102,8 @@ impl Player {
         )
     }
 
+
+    // ajuste la hitbox pendant un tir 
     pub fn active_foot_hitbox_rect(&self) -> (f32, f32, f32, f32) {
         let mut ox = self.foot_hitbox.offset_x;
         if self.faces_left() {
@@ -188,10 +190,12 @@ impl Player {
         self.foot_pivot_y_ratio = pivot_y_ratio;
     }
 
+    // largeur de collision utilisée pour les collisions joueur-joueur, plus étroite que la largeur visuelle pour éviter les blocages sur les côtés
     pub fn collision_width(&self) -> f32 {
         self.foot_width.max(self.head_offset_x + self.head_width)
     }
 
+    // calcule la position verticale du joueur lorsque ses pieds touchent le sol, en fonction du point de contact défini
     pub fn y_at_ground(&self, ground_y: f32) -> f32 {
         ground_y - self.foot_height * self.foot_ground_contact_ratio
     }
@@ -201,6 +205,7 @@ impl Player {
         self.y_at_ground(ground_y) + self.foot_height * self.foot_ground_contact_ratio
     }
 
+    // calcule la position de l'articulation du pied (point de pivot pour les rotations) en coordonnées écran
     pub fn foot_pivot_screen_pos(&self) -> Vec2 {
         let pivot_x = if self.faces_right() {
             self.x + self.foot_width * self.foot_pivot_from_back_x_ratio
@@ -211,15 +216,16 @@ impl Player {
         vec2(pivot_x, self.y + self.foot_height * self.foot_pivot_y_ratio)
     }
 
+    // progress de la phase de tir, de 0.0 (pas encore commencé) à 1.0 (pic du tir)
     pub fn shot_progress(&self) -> f32 {
-        (self.foot_angle.abs() / MAX_KICK_ANGLE).clamp(0.0, 1.0)
+        (self.foot_angle.abs() / MAX_KICK_ANGLE).clamp(0.0, 1.0) 
     }
 
-    pub fn faces_left(&self) -> bool {
+    pub fn faces_left(&self) -> bool { // regarde vers la gauche 
         self.side > 0
     }
 
-    pub fn faces_right(&self) -> bool {
+    pub fn faces_right(&self) -> bool { // regarde vers la droite
         self.side < 0
     }
 }

@@ -1,8 +1,9 @@
 use crate::models::ball::Ball;
 use crate::models::player::Player;
 
-
+// Foncions qui gère les collisions entre les joueurs et le ballon, ainsi que les collisions entre les joueurs eux-mêmes.
 pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
+    // on récupère les hitbox de la tête et du pied du joueur, ainsi que la hitbox circulaire du ballon
     let (foot_x, foot_y, foot_w, foot_h) = player.active_foot_hitbox_rect();
     let (head_x, head_y, head_w, head_h) = player.head_hitbox_rect();
 
@@ -11,20 +12,22 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     if let Some((nx, ny, penetration)) =
         rect_circle_collision(head_x, head_y, head_w, head_h, bcx, bcy, bcr)
     {
-        ball.x += nx * penetration;
+        ball.x += nx * penetration; // Push ball out of collision
         ball.y += ny * penetration;
 
         let head_center_x = head_x + head_w * 0.5;
 
         let hit_offset_x = (bcx - head_center_x) / (head_w * 0.5);
 
+
+        // Le ballon vient du dessus
         if ny < -0.3 {
             // Rebond vertical basique
             ball.vy = -ball.vy.abs() * 0.7;
 
             // Si le joueur est en train de monter (saut), on tape plus fort vers le haut
             if player.vy < 0.0 {
-                ball.vy += player.vy * 0.5;
+                ball.vy += player.vy * 0.5; // Boost 
             }
 
             let direction_force = 5.0; // Puissance de la déviation
@@ -32,12 +35,14 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
 
             // On rajoute un peu de l'élan du joueur
             ball.vx += player.vx * 0.4;
+        // Le ballon vient plus de face que de dessus : on applique une déviation plus horizontale
         } else {
             let force = 4.0;
 
             ball.vx += nx * force + player.vx * 0.8;
             ball.vy += ny * force + player.vy * 0.4;
 
+            // on rajoute un petit boost vers le haut  
             ball.vy -= 1.5;
         }
     }
@@ -67,7 +72,7 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
             ball.vx += dir_x * force + speed_transfer;
             ball.vy += dir_y * force + player.vy * 0.10;
 
-            // Ensure a minimum upward velocity on a real shot.
+            // assure un minimum de vitesse verticale pour éviter que le ballon ne reste au sol après un tir puissant
             let vy_min = -(3.8 + 2.6 * shot_progress);
             if ball.vy > vy_min {
                 ball.vy = vy_min;
@@ -75,18 +80,18 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
         } else {
             // Soft touch outside shot phase: damp speed and add mild push.
             let soft_force = 1.6;
-            ball.vx *= 0.86;
+            ball.vx *= 0.86; // on ammortit un peu la vitesse actuelle du ballon pour éviter les accélérations trop brutales sur les petits contacts
             ball.vy *= 0.90;
 
-            ball.vx += nx * soft_force + player.vx * 0.20;
-            ball.vy += ny * (soft_force * 0.55);
+            ball.vx += nx * soft_force + player.vx * 0.20; // on ajoute un petit peu de l'élan du joueur pour rendre les contrôles plus fluides, mais sans que ça devienne trop puissant
+            ball.vy += ny * (soft_force * 0.55); 
             ball.vy -= 0.35;
         }
     }
 
     // Body collision: covers the torso between head and feet.
     let (body_x, body_y, body_w, body_h) = player.body_hitbox_rect();
-    if body_h > 0.0 {
+    if body_h > 0.0 { // si la hitbox du corps est définie (car peut être désactivée en cas de besoin)
         if let Some((nx, ny, penetration)) =
             rect_circle_collision(body_x, body_y, body_w, body_h, bcx, bcy, bcr)
         {
@@ -109,14 +114,15 @@ pub fn apply_player_ball_collision(player: &Player, ball: &mut Ball) {
     limit_ball_speed(ball, 18.0);
 }
 
+// 
 fn rect_circle_collision(
-    rx: f32,
-    ry: f32,
-    rw: f32,
-    rh: f32,
-    cx: f32,
-    cy: f32,
-    cr: f32,
+    rx: f32, // rectangle x
+    ry: f32, // rectangle y
+    rw: f32, // rectangle width
+    rh: f32, // rectangle height
+    cx: f32, // circle center x
+    cy: f32, // circle center y
+    cr: f32, // circle radius
 ) -> Option<(f32, f32, f32)> {
     let closest_x = cx.clamp(rx, rx + rw);
     let closest_y = cy.clamp(ry, ry + rh);
@@ -181,9 +187,9 @@ pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
 
     // Only apply horizontal collision if players are roughly at the same vertical level.
     if bottom1 < top2 + 15.0 || bottom2 < top1 + 15.0 {
-        return; 
+        return; // les joueurs sont à des hauteurs très différentes, pas de collision horizontale appliquée pour éviter que les joueurs ne se repoussent alors qu'ils sont en train de sauter l'un par dessus l'autre par exemple
     }
-    let hw1 = p1.collision_width() / 3.0;
+    let hw1 = p1.collision_width() / 3.0; 
     let hw2 = p2.collision_width() / 3.0;
 
     let c1 = p1.x + hw1;
@@ -192,9 +198,9 @@ pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
     let dx = c2 - c1;
     let min_dist = hw1 + hw2 - 1.0; // small leniency
 
-    if dx.abs() < min_dist {
-        let overlap = min_dist - dx.abs();
-        let push = overlap / 2.0;
+    if dx.abs() < min_dist { // collision détectée
+        let overlap = min_dist - dx.abs(); // distance à corriger pour séparer les joueurs
+        let push = overlap / 2.0; // chaque joueur pousse l'autre de moitié de la distance nécessaire pour les séparer
 
         if dx > 0.0 {
             // p2 is mostly to the right
@@ -208,6 +214,6 @@ pub fn apply_player_player_collision(p1: &mut Player, p2: &mut Player) {
 
         let avg_vx = (p1.vx + p2.vx) * 0.5;
         p1.vx = avg_vx;
-        p2.vx = avg_vx;
+        p2.vx = avg_vx; // on partage la vitesse horizontale entre les deux joueurs pour éviter que l'un des deux ne prenne tout l'élan de la collision
     }
 }
